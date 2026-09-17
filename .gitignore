@@ -9,8 +9,9 @@ dist-ssr/
 .vite/
 coverage/
 
-# Erzeugte Sprite-Blätter
-public/atlas/
+# Die erzeugten Sprite-Blaetter gehoeren ins Repo. Sie sind eigene Grafik,
+# in wenigen Sekunden aus tools/voxel-render neu baubar, und ohne sie laesst
+# sich das Spiel nach einem frischen Klonen nicht starten.
 
 # Capacitor
 android/
