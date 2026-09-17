@@ -1,12 +1,10 @@
 /** Wellen planen, starten und als abgeraeumt erkennen. */
 
-import type { SpawnOrder, WaveDef } from '../model/types';
+import type { WaveDef } from '../model/types';
 import { SECONDS_PER_TICK, TICKS_PER_SECOND } from '../model/types';
 import type { World } from '../model/world';
 import { waveGoldFactor, waveHealthFactor, EARLY_START_BONUS_PER_SECOND } from '../core/balance';
-import { positionOnRoute, routeLengthFor } from '../core/route';
-
-const scratch = { x: 0, y: 0 };
+import { erzeugeGegner } from '../core/spawn';
 
 /**
  * Die Wellendefinition fuer eine Wellennummer.
@@ -21,15 +19,22 @@ export function waveDefFor(world: World, waveNumber: number): WaveDef {
   return def;
 }
 
+export function goldFaktor(world: World, waveNumber: number): number {
+  return waveGoldFactor(waveNumber) * world.difficulty.goldFactor * (world.mutator?.goldFactor ?? 1);
+}
+
 export function startNextWave(world: World, bonusSeconds: number): void {
   if (world.wavesStarted >= world.waveCount) return;
 
   const waveNumber = world.wavesStarted + 1;
   const def = waveDefFor(world, waveNumber);
-  const healthFactor = waveHealthFactor(waveNumber) * world.difficulty.healthFactor;
-  const goldFactor = waveGoldFactor(waveNumber) * world.difficulty.goldFactor;
+  const grundFaktor = world.difficulty.healthFactor * (world.mutator?.healthFactor ?? 1);
+  const healthFactor = waveHealthFactor(waveNumber) * grundFaktor;
 
   for (const group of def.groups) {
+    // Bosse sind fuer ihre Karte entworfen. Wuerde die Wellensteigerung auch
+    // auf sie wirken, waere ein Boss in Welle 25 vierfach so zaeh wie gedacht.
+    const istBoss = world.content.enemies.get(group.enemyId)?.boss !== null;
     const order = world.spawns.acquire();
     order.enemyId = group.enemyId;
     order.remaining = group.count;
@@ -37,16 +42,18 @@ export function startNextWave(world: World, bonusSeconds: number): void {
     order.spacingTicks = Math.max(1, Math.round(group.spacing * TICKS_PER_SECOND));
     order.routeIndex = group.pathIndex;
     order.waveNumber = waveNumber;
-    order.healthFactor = healthFactor;
-    order.goldFactor = goldFactor;
-    order.speedFactor = world.difficulty.speedFactor;
+    order.healthFactor = istBoss ? grundFaktor : healthFactor;
+    order.goldFactor = goldFaktor(world, waveNumber);
+    order.speedFactor = world.difficulty.speedFactor * (world.mutator?.speedFactor ?? 1);
   }
 
   world.wavesStarted = waveNumber;
   world.status = 'laufend';
   world.waveTimer = world.wavesStarted < world.waveCount ? world.level.waveInterval : -1;
 
-  const bonus = Math.floor(Math.max(0, bonusSeconds) * EARLY_START_BONUS_PER_SECOND);
+  const bonus = Math.floor(
+    Math.max(0, bonusSeconds) * EARLY_START_BONUS_PER_SECOND * world.boni.wellenBonus,
+  );
   if (bonus > 0) {
     world.gold += bonus;
     world.stats.goldEarned += bonus;
@@ -63,6 +70,14 @@ export function systemWaves(world: World): void {
       startNextWave(world, 0);
     }
   }
+  if (world.status === 'vorbereitung' && world.waveTimer > 0) {
+    // Mutator ohne Bauphase: die Uhr laeuft schon vor der ersten Welle.
+    world.waveTimer -= SECONDS_PER_TICK;
+    if (world.waveTimer <= 0) {
+      world.waveTimer = 0;
+      startNextWave(world, 0);
+    }
+  }
 
   const orders = world.spawns.items;
   for (let i = 0; i < orders.length; i++) {
@@ -70,47 +85,20 @@ export function systemWaves(world: World): void {
     if (order === undefined || !order.active) continue;
 
     while (order.remaining > 0 && order.nextTick <= world.tick) {
-      spawnEnemy(world, order);
+      erzeugeGegner(world, {
+        defId: order.enemyId,
+        waveNumber: order.waveNumber,
+        routeIndex: order.routeIndex,
+        travelled: 0,
+        healthFactor: order.healthFactor,
+        goldFactor: order.goldFactor,
+        speedFactor: order.speedFactor,
+      });
       order.remaining -= 1;
       order.nextTick += order.spacingTicks;
     }
     if (order.remaining <= 0) world.spawns.release(order);
   }
-}
-
-function spawnEnemy(world: World, order: SpawnOrder): void {
-  const def = world.content.enemies.get(order.enemyId);
-  if (def === undefined) throw new Error(`Unbekannter Gegner: ${order.enemyId}`);
-
-  const route = world.routes[order.routeIndex] ?? world.routes[0];
-  if (route === undefined) throw new Error('Level ohne Weg.');
-
-  const enemy = world.enemies.acquire();
-  enemy.id = world.nextEntityId++;
-  enemy.defId = def.id;
-  enemy.waveNumber = order.waveNumber;
-  enemy.routeIndex = world.routes[order.routeIndex] === undefined ? 0 : order.routeIndex;
-  enemy.travelled = 0;
-  enemy.routeLength = routeLengthFor(route, def.flying);
-  enemy.maxHealth = def.health * order.healthFactor;
-  enemy.health = enemy.maxHealth;
-  enemy.baseSpeed = def.speed * order.speedFactor;
-  enemy.armor = def.armor;
-  enemy.gold = Math.max(1, Math.round(def.gold * order.goldFactor));
-  enemy.flying = def.flying;
-  enemy.invisible = def.invisible;
-  enemy.slowFactor = 0;
-  enemy.slowTicksLeft = 0;
-  enemy.burnDps = 0;
-  enemy.burnTicksLeft = 0;
-  enemy.burnSourceDefId = '';
-  enemy.reachedGoal = false;
-
-  positionOnRoute(route, 0, def.flying, scratch);
-  enemy.x = scratch.x;
-  enemy.y = scratch.y;
-
-  world.events.push({ type: 'gegner-erschienen', enemyId: enemy.id, defId: def.id });
 }
 
 /** Erkennt abgeraeumte Wellen und zahlt die Belohnung aus. */
@@ -121,7 +109,12 @@ export function systemWaveClear(world: World): void {
 
     world.wavesCleared = waveNumber;
     const def = waveDefFor(world, waveNumber);
-    const reward = Math.round(def.reward * world.difficulty.goldFactor);
+    const reward = Math.round(
+      def.reward *
+        world.difficulty.goldFactor *
+        (world.mutator?.goldFactor ?? 1) *
+        world.boni.wellenBonus,
+    );
     world.gold += reward;
     world.stats.goldEarned += reward;
     world.events.push({ type: 'welle-geschafft', wave: waveNumber, reward });

@@ -11,6 +11,8 @@ import type { World } from '../model/world';
 import { systemWaves, systemWaveClear } from '../systems/waves';
 import { systemMovement } from '../systems/movement';
 import { systemEffects } from '../systems/effects';
+import { systemAuren } from '../systems/auren';
+import { systemVerhalten } from '../systems/verhalten';
 import { systemTowers } from '../systems/towers';
 import { systemProjectiles } from '../systems/projectiles';
 import { systemDamage } from '../systems/damage';
@@ -28,6 +30,8 @@ export function step(world: World): void {
   systemWaves(world);
   systemMovement(world);
   systemEffects(world);
+  systemAuren(world);
+  systemVerhalten(world);
   systemTowers(world);
   systemProjectiles(world);
   systemDamage(world);

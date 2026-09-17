@@ -3,11 +3,13 @@
 import type { Pool } from '@shared/pool';
 import type { Rng } from '../core/rng';
 import type {
+  Boni,
   Content,
   DamageOrder,
   DifficultyMods,
   Enemy,
   LevelDef,
+  MutatorDef,
   Projectile,
   Route,
   RunStats,
@@ -26,6 +28,10 @@ export interface World {
   readonly level: LevelDef;
   readonly routes: readonly Route[];
   readonly difficulty: DifficultyMods;
+  readonly boni: Boni;
+  readonly mutator: MutatorDef | null;
+  /** Erlaubte Tuerme. Leer bedeutet: alle. */
+  readonly loadout: readonly string[];
 
   gold: number;
   lives: number;

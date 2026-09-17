@@ -10,7 +10,7 @@
  */
 
 import type { EffectSpec, Enemy } from '../model/types';
-import { SECONDS_PER_TICK, TICKS_PER_SECOND } from '../model/types';
+import { NO_EFFECT, SECONDS_PER_TICK, TICKS_PER_SECOND } from '../model/types';
 import type { World } from '../model/world';
 
 export function applyEffect(enemy: Enemy, effect: EffectSpec, sourceDefId: string): void {
@@ -54,12 +54,20 @@ export function systemEffects(world: World): void {
         armorPierce: 0,
         towerId: 0,
         towerDefId: enemy.burnSourceDefId,
-        effect: { slowFactor: 0, slowDuration: 0, burnDps: 0, burnDuration: 0 },
+        effect: NO_EFFECT,
+        knockback: 0,
       });
       if (enemy.burnTicksLeft <= 0) {
         enemy.burnDps = 0;
         enemy.burnSourceDefId = '';
       }
     }
+  }
+
+  const towers = world.towers.items;
+  for (let i = 0; i < towers.length; i++) {
+    const tower = towers[i];
+    if (tower === undefined || !tower.active) continue;
+    if (tower.stunTicks > 0) tower.stunTicks -= 1;
   }
 }

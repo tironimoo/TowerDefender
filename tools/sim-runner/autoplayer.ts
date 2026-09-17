@@ -11,8 +11,14 @@
  *    anrichten. Ein Mensch stellt zu Beginn mehrere billige Angriffstuerme auf
  *    und nicht einen teuren, und schon gar keine reinen Kontrolltuerme. Ein
  *    Messwerkzeug, das es anders macht, misst die falsche Untergrenze.
- * 3. Danach wird abwechselnd erweitert und ausgebaut. Kontrolltuerme bleiben
- *    auf hoechstens ein Drittel aller Tuerme begrenzt.
+ * 3. Danach waechst die angestrebte Turmzahl mit der Wellennummer. Alles
+ *    darueber hinaus geht in den Ausbau. Das trifft ungefaehr, was ein Mensch
+ *    tut, und vermeidet beide Zerrbilder, den reinen Breitenbau wie den
+ *    reinen Ausbau.
+ * 4. Beim Bauen gewinnt der Turmtyp, von dem am wenigsten steht. Dadurch
+ *    mischen sich die Schadensarten von selbst, statt dass ein einziger Typ
+ *    die ganze Karte traegt.
+ * 5. Kontrolltuerme bleiben auf hoechstens ein Drittel aller Tuerme begrenzt.
  * 4. Wellen laufen nach Uhr, ausser die erste. Mit `rushWaves` startet der
  *    Spieler jede Welle sofort und holt damit den Bonus fuer vorzeitigen
  *    Start. Das ergibt die obere statt der unteren Schranke.
@@ -35,6 +41,8 @@ export interface AutoPlayerOptions {
 interface RankedSlot {
   readonly index: number;
   readonly score: number;
+  /** Platz auf dem Weg. Nimmt nur Fallen auf. */
+  readonly aufWeg: boolean;
 }
 
 export class AutoPlayer {
@@ -77,29 +85,64 @@ export class AutoPlayer {
       applyCommand(world, { type: 'welle-starten' });
     }
 
-    // Erst eine Grundabdeckung aus Angriffstuermen, danach in die Breite.
     const built = world.occupiedSlots.size;
-    const controlBuilt = this.countControlTowers(world);
-    const controlAllowed = controlBuilt < Math.floor(built / 3) + (built === 0 ? 0 : 1);
-    const preference = built < this.baseCoverage ? this.cheapFirst : this.costlyFirst;
 
+    // Erst eine Grundabdeckung aus Angriffstuermen.
+    if (built < this.baseCoverage) {
+      if (this.baue(world, this.cheapFirst, false)) return;
+      return;
+    }
+
+    const controlBuilt = this.countControlTowers(world);
+    const controlAllowed = controlBuilt < Math.floor(built / 3) + 1;
+
+    // Erst in die Breite, bis die angestrebte Zahl steht, dann in die Tiefe.
+    const zielAnzahl = this.baseCoverage + Math.floor(world.wavesStarted * 0.7);
+    if (built < zielAnzahl && this.baue(world, this.nachHaeufigkeit(world), controlAllowed)) {
+      return;
+    }
+    if (this.baueAus(world)) return;
+    this.baue(world, this.nachHaeufigkeit(world), controlAllowed);
+  }
+
+  /** Turmtypen, von denen am wenigsten steht, zuerst. */
+  private nachHaeufigkeit(world: World): readonly TowerDef[] {
+    const anzahl = new Map<string, number>();
+    for (const towerId of world.occupiedSlots.values()) {
+      const tower = findTower(world, towerId);
+      if (tower === null) continue;
+      anzahl.set(tower.defId, (anzahl.get(tower.defId) ?? 0) + 1);
+    }
+    return [...this.costlyFirst].sort((a, b) => {
+      const diff = (anzahl.get(a.id) ?? 0) - (anzahl.get(b.id) ?? 0);
+      return diff !== 0 ? diff : b.cost - a.cost;
+    });
+  }
+
+  private baue(world: World, preference: readonly TowerDef[], controlAllowed: boolean): boolean {
     for (const slot of this.slots) {
       if (world.occupiedSlots.has(slot.index)) continue;
+      // Fallen gehoeren auf den Weg, alles andere daneben. Wer das mischt,
+      // bekommt nur abgelehnte Befehle.
       const affordable = preference.find(
         (def) =>
           def.cost <= world.gold &&
-          (!this.controlOnly.has(def.id) || (controlAllowed && built >= this.baseCoverage)),
+          (def.special.kind === 'falle') === slot.aufWeg &&
+          (!this.controlOnly.has(def.id) || controlAllowed),
       );
-      if (affordable === undefined) break;
+      if (affordable === undefined) continue;
       applyCommand(world, {
         type: 'bauen',
         slotIndex: slot.index,
         towerDefId: affordable.id,
       });
-      return;
+      return true;
     }
+    return false;
+  }
 
-    // Danach ausbauen, beginnend beim besten Bauplatz.
+  /** Baut den Turm mit der besten Abdeckung aus, der sich leisten laesst. */
+  private baueAus(world: World): boolean {
     for (const slot of this.slots) {
       const towerId = world.occupiedSlots.get(slot.index);
       if (towerId === undefined) continue;
@@ -112,8 +155,9 @@ export class AutoPlayer {
       const cost = Math.round(def.cost * nextStep.costFactor);
       if (cost > world.gold) continue;
       applyCommand(world, { type: 'ausbauen', towerId: tower.id });
-      return;
+      return true;
     }
+    return false;
   }
 
   private countControlTowers(world: World): number {
@@ -157,7 +201,7 @@ export function rankSlots(world: World, range: number): readonly RankedSlot[] {
       const dy = sample.y - slot.y;
       if (dx * dx + dy * dy <= rangeSquared) score += 1;
     }
-    return { index, score };
+    return { index, score, aufWeg: slot.aufWeg };
   });
 
   // Bei Gleichstand entscheidet der Index, damit das Ergebnis reproduzierbar ist.

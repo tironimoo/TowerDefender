@@ -7,20 +7,21 @@
 
 import { Pool } from '@shared/pool';
 import type {
+  Boni,
   Content,
   Difficulty,
   Enemy,
+
   Projectile,
   SimCommand,
   SpawnOrder,
   Tower,
   TowerDef,
 } from '../model/types';
-import { DIFFICULTY, NO_EFFECT } from '../model/types';
+import { DIFFICULTY, KEINE_BONI, NO_EFFECT } from '../model/types';
 import type { World } from '../model/world';
 import { createRng } from './rng';
 import { buildRoute } from './route';
-import { SELL_REFUND } from './balance';
 import { startNextWave } from '../systems/waves';
 
 export interface CreateWorldOptions {
@@ -28,14 +29,29 @@ export interface CreateWorldOptions {
   readonly levelId: string;
   readonly difficulty: Difficulty;
   readonly seed: number;
+  /** Dauerhafte Verbesserungen aus Forschung und Meisterschaft. */
+  readonly boni?: Boni;
+  /** Mutator-Id. Leer oder fehlend bedeutet keiner. */
+  readonly mutatorId?: string;
+  /** Erlaubte Tuerme. Leer bedeutet alle. */
+  readonly loadout?: readonly string[];
 }
 
 export function createWorld(options: CreateWorldOptions): World {
   const level = options.content.levels.get(options.levelId);
-  if (level === undefined) {
-    throw new Error(`Unbekanntes Level: ${options.levelId}`);
-  }
+  if (level === undefined) throw new Error(`Unbekanntes Level: ${options.levelId}`);
+
   const mods = DIFFICULTY[options.difficulty];
+  const boni = options.boni ?? KEINE_BONI;
+
+  // Auf Albtraum traegt jede Karte ihren eigenen Mutator.
+  const mutatorId =
+    options.mutatorId !== undefined && options.mutatorId !== ''
+      ? options.mutatorId
+      : options.difficulty === 'albtraum'
+        ? level.albtraumMutator
+        : '';
+  const mutator = mutatorId === '' ? null : (options.content.mutators.get(mutatorId) ?? null);
 
   return {
     tick: 0,
@@ -45,13 +61,17 @@ export function createWorld(options: CreateWorldOptions): World {
     level,
     routes: level.paths.map(buildRoute),
     difficulty: mods,
-    gold: level.startGold,
-    lives: level.lives,
+    boni,
+    mutator,
+    loadout: options.loadout ?? [],
+    gold: level.startGold + boni.startGold,
+    lives: level.lives + boni.zusatzLeben,
     wavesStarted: 0,
     wavesCleared: 0,
     waveCount: level.waves.length + mods.extraWaves,
-    // Vor der ersten Welle gibt es keine Zeitbegrenzung.
-    waveTimer: -1,
+    // Vor der ersten Welle gibt es keine Zeitbegrenzung, ausser der Mutator
+    // nimmt sie weg.
+    waveTimer: mutator?.keineVorbereitung === true ? 5 : -1,
     enemies: new Pool<Enemy>(createEnemy),
     towers: new Pool<Tower>(createTower),
     projectiles: new Pool<Projectile>(createProjectile),
@@ -67,6 +87,7 @@ export function createWorld(options: CreateWorldOptions): World {
       goldEarned: 0,
       goldSpent: 0,
       damageByTower: new Map(),
+      killsByTower: new Map(),
       killsByEnemy: new Map(),
       leaksByEnemy: new Map(),
     },
@@ -123,6 +144,21 @@ function commandBuild(world: World, slotIndex: number, towerDefId: string): void
     world.events.push({ type: 'befehl-abgelehnt', grund: `Unbekannter Turm: ${towerDefId}` });
     return;
   }
+  if (world.loadout.length > 0 && !world.loadout.includes(towerDefId)) {
+    world.events.push({ type: 'befehl-abgelehnt', grund: 'Turm ist nicht im Loadout.' });
+    return;
+  }
+
+  // Fallen gehoeren auf den Weg, alles andere daneben.
+  const istFalle = def.special.kind === 'falle';
+  if (istFalle !== slot.aufWeg) {
+    world.events.push({
+      type: 'befehl-abgelehnt',
+      grund: istFalle ? 'Fallen gehoeren auf den Weg.' : 'Dieser Platz nimmt nur Fallen auf.',
+    });
+    return;
+  }
+
   if (world.gold < def.cost) {
     world.events.push({ type: 'befehl-abgelehnt', grund: 'Nicht genug Gold.' });
     return;
@@ -139,10 +175,13 @@ function commandBuild(world: World, slotIndex: number, towerDefId: string): void
   tower.y = slot.y;
   tower.level = 0;
   tower.cooldown = 0;
+  tower.stunTicks = 0;
   tower.policy = def.defaultPolicy;
+  tower.heading = 0;
   tower.invested = def.cost;
   tower.damageDealt = 0;
-  applyTowerStats(tower, def);
+  tower.kills = 0;
+  applyTowerStats(world, tower, def);
 
   world.occupiedSlots.set(slotIndex, tower.id);
   world.events.push({
@@ -154,6 +193,13 @@ function commandBuild(world: World, slotIndex: number, towerDefId: string): void
   });
 }
 
+export function ausbauKosten(world: World, def: TowerDef, level: number): number | null {
+  const step = def.upgrades[level];
+  if (step === undefined) return null;
+  const faktor = world.boni.ausbauKosten * (world.mutator?.ausbauKosten ?? 1);
+  return Math.round(def.cost * step.costFactor * faktor);
+}
+
 function commandUpgrade(world: World, towerId: number): void {
   const tower = findTower(world, towerId);
   if (tower === null) {
@@ -163,13 +209,11 @@ function commandUpgrade(world: World, towerId: number): void {
   const def = world.content.towers.get(tower.defId);
   if (def === undefined) return;
 
-  const nextStep = def.upgrades[tower.level];
-  if (nextStep === undefined) {
+  const cost = ausbauKosten(world, def, tower.level);
+  if (cost === null) {
     world.events.push({ type: 'befehl-abgelehnt', grund: 'Turm ist voll ausgebaut.' });
     return;
   }
-
-  const cost = Math.round(def.cost * nextStep.costFactor);
   if (world.gold < cost) {
     world.events.push({ type: 'befehl-abgelehnt', grund: 'Nicht genug Gold.' });
     return;
@@ -179,7 +223,7 @@ function commandUpgrade(world: World, towerId: number): void {
   world.stats.goldSpent += cost;
   tower.invested += cost;
   tower.level += 1;
-  applyTowerStats(tower, def);
+  applyTowerStats(world, tower, def);
   world.events.push({ type: 'turm-ausgebaut', towerId: tower.id, level: tower.level });
 }
 
@@ -189,7 +233,7 @@ function commandSell(world: World, towerId: number): void {
     world.events.push({ type: 'befehl-abgelehnt', grund: 'Turm nicht gefunden.' });
     return;
   }
-  const refund = Math.floor(tower.invested * SELL_REFUND);
+  const refund = Math.floor(tower.invested * world.boni.verkaufswert);
   world.gold += refund;
   world.occupiedSlots.delete(tower.slotIndex);
   world.towers.release(tower);
@@ -211,11 +255,14 @@ function commandStartWave(world: World): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Setzt Schaden und Reichweite aus Grundwert und Ausbaustufe.
- * Die Zuwaechse multiplizieren sich, eine Stufe mit plus 55 Prozent erhoeht den
- * bereits erreichten Wert. Siehe docs/05-startwerte.md.
+ * Setzt Grundschaden, Grundreichweite und Feuerrate.
+ *
+ * Die Zuwaechse der Ausbaustufen multiplizieren sich, eine Stufe mit plus 55
+ * Prozent erhoeht den bereits erreichten Wert. Darauf kommen die dauerhaften
+ * Boni aus Forschung und Meisterschaft sowie der Mutator. Auren wirken erst
+ * spaeter, jeden Schritt neu, siehe systems/auren.ts.
  */
-export function applyTowerStats(tower: Tower, def: TowerDef): void {
+export function applyTowerStats(world: World, tower: Tower, def: TowerDef): void {
   let damage = def.damage;
   let range = def.range;
   for (let step = 0; step < tower.level; step++) {
@@ -224,9 +271,18 @@ export function applyTowerStats(tower: Tower, def: TowerDef): void {
     damage *= 1 + upgrade.damageBonus;
     range *= 1 + upgrade.rangeBonus;
   }
+
+  const boni = world.boni;
+  damage *= (boni.turmSchaden.get(def.id) ?? 1) * boni.globalerSchaden;
+  range *= (boni.turmReichweite.get(def.id) ?? 1) * boni.globaleReichweite;
+  range *= world.mutator?.turmReichweite ?? 1;
+
+  tower.baseDamage = damage;
+  tower.baseRange = range;
+  tower.baseFireRate = def.fireRate * (boni.turmFeuerrate.get(def.id) ?? 1);
   tower.damage = damage;
   tower.range = range;
-  tower.fireRate = def.fireRate;
+  tower.fireRate = tower.baseFireRate;
 }
 
 export function findTower(world: World, towerId: number): Tower | null {
@@ -263,18 +319,28 @@ function createEnemy(): Enemy {
     routeLength: 0,
     x: 0,
     y: 0,
+    heading: 0,
     health: 0,
     maxHealth: 0,
+    shield: 0,
+    maxShield: 0,
     baseSpeed: 0,
     armor: 'leder',
     gold: 0,
     flying: false,
     invisible: false,
+    revealed: false,
     slowFactor: 0,
     slowTicksLeft: 0,
     burnDps: 0,
     burnTicksLeft: 0,
     burnSourceDefId: '',
+    armorShred: 0,
+    damageAmp: 0,
+    invulnerableTicks: 0,
+    behaviourTicks: 0,
+    behaviourFired: false,
+    bossPhase: 0,
     reachedGoal: false,
   };
 }
@@ -289,13 +355,19 @@ function createTower(): Tower {
     x: 0,
     y: 0,
     level: 0,
+    baseDamage: 0,
+    baseRange: 0,
+    baseFireRate: 0,
     damage: 0,
     range: 0,
     fireRate: 0,
     cooldown: 0,
+    stunTicks: 0,
     policy: 'erster',
+    heading: 0,
     invested: 0,
     damageDealt: 0,
+    kills: 0,
   };
 }
 
@@ -317,6 +389,7 @@ function createProjectile(): Projectile {
     targetsAir: false,
     towerId: 0,
     towerDefId: '',
+    model: '',
     effect: NO_EFFECT,
   };
 }

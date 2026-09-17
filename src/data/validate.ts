@@ -29,6 +29,12 @@ export function validateContent(content: Content): string[] {
     if (tower.damage === 0 && !hasEffect && tower.fireRate > 0) {
       problems.push(`${where}: feuert, richtet aber weder Schaden noch Wirkung an.`);
     }
+    if (tower.fireRate > 0 && tower.projectileModel === '') {
+      problems.push(`${where}: feuert ohne Geschossmodell.`);
+    }
+    if (tower.special.kind === 'aura' && tower.fireRate > 0) {
+      problems.push(`${where}: Unterstuetzungstuerme feuern nicht.`);
+    }
   }
 
   for (const enemy of content.enemies.values()) {
@@ -36,6 +42,21 @@ export function validateContent(content: Content): string[] {
     if (enemy.health <= 0) problems.push(`${where}: Leben muss groesser als null sein.`);
     if (enemy.speed <= 0) problems.push(`${where}: Tempo muss groesser als null sein.`);
     if (enemy.gold < 0) problems.push(`${where}: Gold darf nicht negativ sein.`);
+    if (enemy.behaviour.kind === 'teilt' && !content.enemies.has(enemy.behaviour.childId)) {
+      problems.push(`${where}: teilt sich in unbekannten Gegner ${enemy.behaviour.childId}.`);
+    }
+    if (enemy.boss !== null) {
+      let vorher = Number.POSITIVE_INFINITY;
+      for (const phase of enemy.boss.phasen) {
+        if (phase.abLebensanteil >= vorher) {
+          problems.push(`${where}: Bossphasen muessen absteigend angegeben sein.`);
+        }
+        vorher = phase.abLebensanteil;
+        if (phase.ruft !== null && !content.enemies.has(phase.ruft.enemyId)) {
+          problems.push(`${where}: ruft unbekannten Gegner ${phase.ruft.enemyId}.`);
+        }
+      }
+    }
   }
 
   for (const level of content.levels.values()) {
@@ -48,6 +69,13 @@ export function validateContent(content: Content): string[] {
     if (level.lives <= 0) problems.push(`${where}: Leben muessen groesser als null sein.`);
     if (level.startGold < 0) problems.push(`${where}: Startgold darf nicht negativ sein.`);
     if (level.waves.length === 0) problems.push(`${where}: keine Wellen.`);
+    if (level.breite <= 0 || level.hoehe <= 0) problems.push(`${where}: Karte ohne Groesse.`);
+    if (level.albtraumMutator !== '' && !content.mutators.has(level.albtraumMutator)) {
+      problems.push(`${where}: unbekannter Mutator ${level.albtraumMutator}.`);
+    }
+    if (!level.buildSlots.some((slot) => !slot.aufWeg)) {
+      problems.push(`${where}: kein Bauplatz neben dem Weg.`);
+    }
 
     level.waves.forEach((wave, waveIndex) => {
       const waveWhere = `${where}, Welle ${waveIndex + 1}`;

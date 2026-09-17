@@ -19,6 +19,7 @@ export interface Impact {
   readonly towerDefId: string;
   readonly effect: EffectSpec;
   readonly targetsAir: boolean;
+  readonly knockback: number;
 }
 
 /**
@@ -52,6 +53,7 @@ function push(world: World, impact: Impact, enemy: Enemy): void {
     towerId: impact.towerId,
     towerDefId: impact.towerDefId,
     effect: impact.effect,
+    knockback: impact.knockback,
   });
 }
 
@@ -92,6 +94,7 @@ export function systemProjectiles(world: World): void {
         towerDefId: projectile.towerDefId,
         effect: projectile.effect,
         targetsAir: projectile.targetsAir,
+        knockback: 0,
       });
       world.projectiles.release(projectile);
       continue;

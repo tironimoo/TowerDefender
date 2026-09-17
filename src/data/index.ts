@@ -5,13 +5,12 @@
  * unveraenderliche Nachschlagetabellen bereitgestellt.
  */
 
-import type { Content, EnemyDef, LevelDef, TowerDef } from '@sim/model/types';
+import type { Content, EnemyDef, LevelDef, MutatorDef, TowerDef } from '@sim/model/types';
 import { TOWER_DEFS } from './towers';
 import { ENEMY_DEFS } from './enemies';
-import { LEVEL_01 } from './levels/level-01';
+import { MUTATOR_DEFS } from './mutators';
+import { LEVEL_DEFS, LEVEL_REIHENFOLGE } from './levels/index';
 import { validateContent } from './validate';
-
-export const LEVEL_DEFS: readonly LevelDef[] = [LEVEL_01];
 
 function toMap<T extends { id: string }>(defs: readonly T[], kind: string): ReadonlyMap<string, T> {
   const map = new Map<string, T>();
@@ -32,6 +31,8 @@ export function loadContent(): Content {
     towers: toMap<TowerDef>(TOWER_DEFS, 'Turm'),
     enemies: toMap<EnemyDef>(ENEMY_DEFS, 'Gegner'),
     levels: toMap<LevelDef>(LEVEL_DEFS, 'Level'),
+    mutators: toMap<MutatorDef>(MUTATOR_DEFS, 'Mutator'),
+    levelReihenfolge: LEVEL_REIHENFOLGE,
   };
 
   const problems = validateContent(content);
@@ -43,4 +44,4 @@ export function loadContent(): Content {
   return content;
 }
 
-export { TOWER_DEFS, ENEMY_DEFS, LEVEL_01 };
+export { TOWER_DEFS, ENEMY_DEFS, MUTATOR_DEFS, LEVEL_DEFS, LEVEL_REIHENFOLGE };

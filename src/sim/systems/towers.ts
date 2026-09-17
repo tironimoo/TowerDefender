@@ -13,23 +13,44 @@ import type { World } from '../model/world';
 import { distanceSquared } from '@shared/math';
 import { queueImpact } from './projectiles';
 
+/**
+ * Anteil der Reichweite, auf dem ein Turm auch unsichtbare Gegner trifft.
+ *
+ * Ohne diesen Rest waere der Spaehturm kein Vorteil, sondern eine Pflicht, und
+ * eine Karte mit Unsichtbaren ohne ihn schlicht unspielbar. So bleibt der
+ * Spaehturm sehr wertvoll, ohne den Loadout-Platz zu erzwingen.
+ */
+const SICHT_OHNE_SPAEHER = 0.45;
+
+function sichtbarFuer(
+  enemy: { invisible: boolean; revealed: boolean },
+  distSquared: number,
+  range: number,
+): boolean {
+  if (!enemy.invisible || enemy.revealed) return true;
+  const nah = range * SICHT_OHNE_SPAEHER;
+  return distSquared <= nah * nah;
+}
+
 export function systemTowers(world: World): void {
   const towers = world.towers.items;
   for (let i = 0; i < towers.length; i++) {
     const tower = towers[i];
     if (tower === undefined || !tower.active) continue;
 
+    // Ein gestoerter Turm laedt weiter, feuert aber nicht.
     if (tower.cooldown > 0) {
       tower.cooldown = Math.max(0, tower.cooldown - SECONDS_PER_TICK);
-      continue;
     }
+    if (tower.stunTicks > 0 || tower.cooldown > 0) continue;
 
     const def = world.content.towers.get(tower.defId);
-    if (def === undefined || def.fireRate <= 0) continue;
+    if (def === undefined || def.fireRate <= 0 || tower.fireRate <= 0) continue;
 
     const target = selectTarget(world, tower, def);
     if (target === null) continue;
 
+    tower.heading = (Math.atan2(target.x - tower.x, -(target.y - tower.y)) * 180) / Math.PI;
     fire(world, tower, def, target);
     tower.cooldown = 1 / tower.fireRate;
   }
@@ -46,10 +67,10 @@ export function selectTarget(world: World, tower: Tower, def: TowerDef): Enemy |
     const enemy = enemies[i];
     if (enemy === undefined || !enemy.active || enemy.reachedGoal) continue;
     if (enemy.flying && !def.targetsAir) continue;
-    if (enemy.invisible) continue;
 
     const distSquared = distanceSquared(tower.x, tower.y, enemy.x, enemy.y);
     if (distSquared > rangeSquared) continue;
+    if (!sichtbarFuer(enemy, distSquared, tower.range)) continue;
 
     const score = scoreFor(tower.policy, enemy, distSquared);
     if (best === null || score > bestScore || (score === bestScore && enemy.id < best.id)) {
@@ -70,9 +91,9 @@ function scoreFor(policy: TargetPolicy, enemy: Enemy, distSquared: number): numb
     case 'letzter':
       return -progress;
     case 'staerkster':
-      return enemy.health;
+      return enemy.health + enemy.shield;
     case 'schwaechster':
-      return -enemy.health;
+      return -(enemy.health + enemy.shield);
     case 'naechster':
       return -distSquared;
   }
@@ -82,11 +103,19 @@ function fire(world: World, tower: Tower, def: TowerDef, target: Enemy): void {
   world.events.push({
     type: 'schuss',
     towerId: tower.id,
+    towerDefId: def.id,
     x: tower.x,
     y: tower.y,
     targetX: target.x,
     targetY: target.y,
   });
+
+  const knockback = def.special.kind === 'rueckstoss' ? def.special.distance : 0;
+
+  if (def.special.kind === 'kette') {
+    kettenschlag(world, tower, def, target, def.special.jumps, def.special.falloff);
+    return;
+  }
 
   if (def.projectileSpeed <= 0) {
     queueImpact(world, {
@@ -101,6 +130,7 @@ function fire(world: World, tower: Tower, def: TowerDef, target: Enemy): void {
       towerDefId: def.id,
       effect: def.onHit,
       targetsAir: def.targetsAir,
+      knockback,
     });
     return;
   }
@@ -120,5 +150,76 @@ function fire(world: World, tower: Tower, def: TowerDef, target: Enemy): void {
   projectile.targetsAir = def.targetsAir;
   projectile.towerId = tower.id;
   projectile.towerDefId = def.id;
+  projectile.model = def.projectileModel;
   projectile.effect = def.onHit;
+}
+
+/**
+ * Kettenblitz.
+ *
+ * Springt vom Ziel auf immer weitere Gegner, jeder Sprung schwaecher. Die
+ * Sprungweite ist die halbe Turmreichweite, das haelt Ketten lokal und macht
+ * dichte Schwaerme zum bevorzugten Ziel.
+ */
+function kettenschlag(
+  world: World,
+  tower: Tower,
+  def: TowerDef,
+  start: Enemy,
+  jumps: number,
+  falloff: number,
+): void {
+  const enemies = world.enemies.items;
+  const getroffen = new Set<number>();
+  const sprungweiteQuadrat = (tower.range * 0.55) * (tower.range * 0.55);
+
+  let aktuell: Enemy | null = start;
+  let schaden = tower.damage;
+
+  for (let sprung = 0; sprung <= jumps && aktuell !== null; sprung++) {
+    getroffen.add(aktuell.id);
+    queueImpact(world, {
+      x: aktuell.x,
+      y: aktuell.y,
+      primary: aktuell,
+      damage: schaden,
+      damageType: def.damageType,
+      armorPierce: def.armorPierce,
+      splashRadius: 0,
+      towerId: tower.id,
+      towerDefId: def.id,
+      effect: def.onHit,
+      targetsAir: def.targetsAir,
+      knockback: 0,
+    });
+
+    const von = aktuell;
+    let naechstes: Enemy | null = null;
+    let bestDistanz = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i];
+      if (enemy === undefined || !enemy.active || enemy.reachedGoal) continue;
+      if (getroffen.has(enemy.id)) continue;
+      if (enemy.flying && !def.targetsAir) continue;
+      if (enemy.invisible && !enemy.revealed) continue;
+      const d = distanceSquared(von.x, von.y, enemy.x, enemy.y);
+      if (d > sprungweiteQuadrat) continue;
+      if (d < bestDistanz || (d === bestDistanz && naechstes !== null && enemy.id < naechstes.id)) {
+        bestDistanz = d;
+        naechstes = enemy;
+      }
+    }
+
+    if (naechstes !== null) {
+      world.events.push({
+        type: 'kettenblitz',
+        vonX: von.x,
+        vonY: von.y,
+        nachX: naechstes.x,
+        nachY: naechstes.y,
+      });
+    }
+    aktuell = naechstes;
+    schaden *= 1 - falloff;
+  }
 }

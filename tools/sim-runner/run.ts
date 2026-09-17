@@ -8,6 +8,7 @@
 import { loadContent } from '../../src/data/index';
 import type { Difficulty } from '../../src/sim/index';
 import { damageShare, simulate } from './simulate';
+import { erwarteteBoni } from './erwartung';
 
 function arg(name: string, fallback: string): string {
   const index = process.argv.indexOf(`--${name}`);
@@ -25,6 +26,7 @@ const loadout = arg('loadout', 'armbrustturm,schleuder')
 const runs = Number.parseInt(arg('runs', '1'), 10);
 const baseSeed = Number.parseInt(arg('seed', '1'), 10);
 const rushWaves = process.argv.includes('--rush');
+const boniStufe = Number.parseInt(arg('boni', '0'), 10);
 
 const level = content.levels.get(levelId);
 if (level === undefined) {
@@ -55,6 +57,7 @@ for (let run = 0; run < runs; run++) {
     loadout,
     seed: baseSeed + run,
     rushWaves,
+    boni: erwarteteBoni(boniStufe),
   });
 
   if (result.won) wins += 1;

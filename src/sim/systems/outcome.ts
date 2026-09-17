@@ -1,6 +1,7 @@
 /** Tode, durchgekommene Gegner und das Ende der Partie. */
 
 import type { World } from '../model/world';
+import { erzeugeGegner } from '../core/spawn';
 
 export function systemDeaths(world: World): void {
   const enemies = world.enemies.items;
@@ -22,7 +23,39 @@ export function systemDeaths(world: World): void {
       y: enemy.y,
       gold: enemy.gold,
     });
+
+    const def = world.content.enemies.get(enemy.defId);
+    const verhalten = def?.behaviour;
+    // Erst freigeben, dann die Splitter erzeugen. Sonst koennte ein Splitter
+    // denselben Platz im Vorrat belegen und die Schleife durcheinanderbringen.
+    const teilung =
+      verhalten !== undefined && verhalten.kind === 'teilt'
+        ? {
+            childId: verhalten.childId,
+            count: verhalten.count,
+            waveNumber: enemy.waveNumber,
+            routeIndex: enemy.routeIndex,
+            travelled: enemy.travelled,
+            goldFactor: enemy.gold / Math.max(1, def?.gold ?? 1),
+          }
+        : null;
+
     world.enemies.release(enemy);
+
+    if (teilung !== null) {
+      const kind = world.content.enemies.get(teilung.childId);
+      for (let k = 0; k < teilung.count && kind !== undefined; k++) {
+        erzeugeGegner(world, {
+          defId: teilung.childId,
+          waveNumber: teilung.waveNumber,
+          routeIndex: teilung.routeIndex,
+          travelled: Math.max(0, teilung.travelled - 0.3 * k),
+          healthFactor: 1,
+          goldFactor: teilung.goldFactor,
+          speedFactor: world.difficulty.speedFactor * (world.mutator?.speedFactor ?? 1),
+        });
+      }
+    }
   }
 }
 
@@ -32,7 +65,8 @@ export function systemLeaks(world: World): void {
     const enemy = enemies[i];
     if (enemy === undefined || !enemy.active || !enemy.reachedGoal) continue;
 
-    world.lives -= 1;
+    const def = world.content.enemies.get(enemy.defId);
+    world.lives -= def?.leakCost ?? 1;
     world.stats.leaked += 1;
     world.stats.leaksByEnemy.set(enemy.defId, (world.stats.leaksByEnemy.get(enemy.defId) ?? 0) + 1);
 

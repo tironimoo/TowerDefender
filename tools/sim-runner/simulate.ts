@@ -6,7 +6,7 @@
  * Schaden hatte.
  */
 
-import type { Content, Difficulty, World } from '@sim/index';
+import type { Boni, Content, Difficulty, World } from '@sim/index';
 import { createWorld, step, drainEvents, TICKS_PER_SECOND } from '@sim/index';
 import { AutoPlayer } from './autoplayer';
 
@@ -16,6 +16,8 @@ export interface SimulateOptions {
   readonly difficulty: Difficulty;
   readonly loadout: readonly string[];
   readonly seed: number;
+  /** Dauerhafte Verbesserungen, die der Spieler an dieser Stelle haette. */
+  readonly boni?: Boni;
   /** Jede Welle sofort starten. Misst die obere statt der unteren Schranke. */
   readonly rushWaves?: boolean;
   /** Abbruch, damit ein Fehler nicht in eine Endlosschleife laeuft. */
@@ -45,6 +47,8 @@ export function simulate(options: SimulateOptions): SimulateResult {
     levelId: options.levelId,
     difficulty: options.difficulty,
     seed: options.seed,
+    loadout: options.loadout,
+    ...(options.boni === undefined ? {} : { boni: options.boni }),
   });
 
   const player = new AutoPlayer(world, {

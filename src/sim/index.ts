@@ -5,13 +5,14 @@
  * Die Simulation kennt weder PixiJS noch Eingabegeraete noch Echtzeit.
  */
 
-export { createWorld, applyCommand, findTower, findEnemy } from './core/world';
+export { createWorld, applyCommand, findTower, findEnemy, ausbauKosten } from './core/world';
 export { step, drainEvents } from './core/step';
 export { createRng } from './core/rng';
 export type { Rng } from './core/rng';
 export { buildRoute, positionOnRoute, routeLengthFor } from './core/route';
 export { resistanceFactor } from './systems/damage';
 export { waveDefFor } from './systems/waves';
+export { erzeugeGegner } from './core/spawn';
 export {
   waveHealthFactor,
   waveGoldFactor,

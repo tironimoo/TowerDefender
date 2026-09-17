@@ -6,10 +6,10 @@
  */
 
 /** Leben je Welle gegenueber der vorherigen. */
-export const WAVE_HEALTH_GROWTH = 1.11;
+export const WAVE_HEALTH_GROWTH = 1.095;
 
 /** Goldbelohnung je Welle. Bewusst langsamer als das Leben. */
-export const WAVE_GOLD_GROWTH = 1.04;
+export const WAVE_GOLD_GROWTH = 1.06;
 
 /** Gold je verbleibender Sekunde beim vorzeitigen Wellenstart. */
 export const EARLY_START_BONUS_PER_SECOND = 1;
