@@ -37,7 +37,17 @@ export function systemAuren(world: World): void {
     const def = world.content.towers.get(quelle.defId);
     if (def === undefined || def.special.kind !== 'aura') continue;
 
-    const effect: AuraEffect = def.special.effect;
+    const roh: AuraEffect = def.special.effect;
+    // Die Meisterschaft verstaerkt die Wirkung einer Aura, nicht ihre Reichweite.
+    const staerke = quelle.auraStaerke;
+    const effect: AuraEffect = {
+      ...roh,
+      damageBonus: roh.damageBonus * staerke,
+      rangeBonus: roh.rangeBonus * staerke,
+      fireRateBonus: roh.fireRateBonus * staerke,
+      armorShred: Math.min(0.95, roh.armorShred * staerke),
+      damageAmp: roh.damageAmp * staerke,
+    };
     const radiusQuadrat = quelle.range * quelle.range;
 
     if (effect.aufGegner || effect.reveal) {

@@ -113,7 +113,7 @@ function fire(world: World, tower: Tower, def: TowerDef, target: Enemy): void {
   const knockback = def.special.kind === 'rueckstoss' ? def.special.distance : 0;
 
   if (def.special.kind === 'kette') {
-    kettenschlag(world, tower, def, target, def.special.jumps, def.special.falloff);
+    kettenschlag(world, tower, def, target, tower.kettenSpruenge, def.special.falloff);
     return;
   }
 
@@ -124,11 +124,11 @@ function fire(world: World, tower: Tower, def: TowerDef, target: Enemy): void {
       primary: target,
       damage: tower.damage,
       damageType: def.damageType,
-      armorPierce: def.armorPierce,
-      splashRadius: def.splashRadius,
+      armorPierce: tower.armorPierce,
+      splashRadius: tower.splashRadius,
       towerId: tower.id,
       towerDefId: def.id,
-      effect: def.onHit,
+      effect: tower.onHit,
       targetsAir: def.targetsAir,
       knockback,
     });
@@ -145,13 +145,13 @@ function fire(world: World, tower: Tower, def: TowerDef, target: Enemy): void {
   projectile.speed = def.projectileSpeed;
   projectile.damage = tower.damage;
   projectile.damageType = def.damageType;
-  projectile.armorPierce = def.armorPierce;
-  projectile.splashRadius = def.splashRadius;
+  projectile.armorPierce = tower.armorPierce;
+  projectile.splashRadius = tower.splashRadius;
   projectile.targetsAir = def.targetsAir;
   projectile.towerId = tower.id;
   projectile.towerDefId = def.id;
   projectile.model = def.projectileModel;
-  projectile.effect = def.onHit;
+  projectile.effect = tower.onHit;
 }
 
 /**
@@ -184,11 +184,11 @@ function kettenschlag(
       primary: aktuell,
       damage: schaden,
       damageType: def.damageType,
-      armorPierce: def.armorPierce,
+      armorPierce: tower.armorPierce,
       splashRadius: 0,
       towerId: tower.id,
       towerDefId: def.id,
-      effect: def.onHit,
+      effect: tower.onHit,
       targetsAir: def.targetsAir,
       knockback: 0,
     });

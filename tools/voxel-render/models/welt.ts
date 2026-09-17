@@ -34,12 +34,13 @@ export const TILE_MODELS: readonly VoxelModel[] = [
   // Glutschlucht
   kachel('kachel_basalt', GLUT.basalt, GLUT.russ),
   kachel('kachel_basalt2', GLUT.basaltHell, GLUT.russ),
-  kachel('kachel_asche', GLUT.asche, '#4a4550'),
+  kachel('kachel_asche', '#82798c', '#4a4550'),
   kachel('kachel_lava', GLUT.lava, GLUT.magma, { glow: 0.85, grain: 0.16 }),
   // Leerlande
   kachel('kachel_leere', LEERE.stein, LEERE.obsidian),
   kachel('kachel_leere2', LEERE.steinHell, LEERE.obsidian),
-  kachel('kachel_obsidian', LEERE.obsidian, '#120c22'),
+  // Der Weg muss heller sein als der Untergrund, sonst findet ihn niemand.
+  kachel('kachel_leereweg', '#6a5a94', LEERE.obsidian),
   kachel('kachel_amethyst', LEERE.amethyst, LEERE.stein, { glow: 0.5, grain: 0.14 }),
   // Gemeinsam
   kachel('kachel_plattform', GEMEINSAM.stein, GEMEINSAM.steinDunkel),

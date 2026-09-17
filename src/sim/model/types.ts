@@ -223,6 +223,18 @@ export interface LevelDef {
   readonly props: readonly PropDef[];
   /** Zusaetzliche Flaechen, etwa Wasser oder Lava. */
   readonly fluessig: readonly { readonly x: number; readonly y: number }[];
+  /**
+   * Art jeder Kachel, zeilenweise von oben links.
+   * Wird beim Erzeugen der Karte einmal bestimmt, damit die Darstellung nicht
+   * in jedem Bild Abstaende zum Weg ausrechnen muss.
+   */
+  readonly kacheln: readonly TileKind[];
+  /**
+   * Wegkacheln ausserhalb der Karte.
+   * Gegner erscheinen und verschwinden am Rand. Ohne diese Kacheln laufen sie
+   * sichtbar durch die Leere.
+   */
+  readonly randWeg: readonly { readonly x: number; readonly y: number }[];
   readonly startGold: number;
   readonly lives: number;
   /** Sekunden zwischen zwei Wellen, wenn nicht vorzeitig gestartet wird. */
@@ -268,12 +280,48 @@ export const DIFFICULTY: Readonly<Record<Difficulty, DifficultyMods>> = {
   albtraum: { healthFactor: 2.6, speedFactor: 1.2, goldFactor: 0.8, extraWaves: 8 },
 };
 
+/**
+ * Verbesserungen an einem einzelnen Turmtyp.
+ *
+ * Kommen aus der Meisterschaft dieses Turms und aus der Forschung. Faktoren
+ * sind multiplikativ, Zuschlaege additiv.
+ */
+export interface TurmBonus {
+  /** Zuschlag auf den Grundschaden, vor allen Faktoren. */
+  readonly schadenPlus: number;
+  readonly schaden: number;
+  readonly reichweite: number;
+  readonly feuerrate: number;
+  /** Zuschlag auf den Flaechenradius, in Kacheln. */
+  readonly splash: number;
+  /** Zuschlag auf den Durchschlag, 0 bis 1. */
+  readonly durchschlag: number;
+  /** Zuschlag auf die Verlangsamung, 0 bis 1. */
+  readonly verlangsamung: number;
+  /** Zuschlag auf den Brandschaden je Sekunde. */
+  readonly brandDps: number;
+  /** Zusaetzliche Spruenge des Kettenblitzes. */
+  readonly kettenSpruenge: number;
+  /** Zuschlag auf die Wirkung einer Aura, als Faktor. */
+  readonly auraStaerke: number;
+}
+
+export const KEIN_TURM_BONUS: TurmBonus = {
+  schadenPlus: 0,
+  schaden: 1,
+  reichweite: 1,
+  feuerrate: 1,
+  splash: 0,
+  durchschlag: 0,
+  verlangsamung: 0,
+  brandDps: 0,
+  kettenSpruenge: 0,
+  auraStaerke: 1,
+};
+
 /** Dauerhafte Verbesserungen aus Forschung und Meisterschaft. */
 export interface Boni {
-  /** Schaden je Turmtyp, als Faktor. */
-  readonly turmSchaden: ReadonlyMap<string, number>;
-  readonly turmReichweite: ReadonlyMap<string, number>;
-  readonly turmFeuerrate: ReadonlyMap<string, number>;
+  readonly tuerme: ReadonlyMap<string, TurmBonus>;
   readonly globalerSchaden: number;
   readonly globaleReichweite: number;
   readonly ausbauKosten: number;
@@ -284,9 +332,7 @@ export interface Boni {
 }
 
 export const KEINE_BONI: Boni = {
-  turmSchaden: new Map(),
-  turmReichweite: new Map(),
-  turmFeuerrate: new Map(),
+  tuerme: new Map(),
   globalerSchaden: 1,
   globaleReichweite: 1,
   ausbauKosten: 1,
@@ -375,6 +421,12 @@ export interface Tower {
   damage: number;
   range: number;
   fireRate: number;
+  /** Wirksame Kampfwerte aus Definition, Ausbau und dauerhaften Boni. */
+  splashRadius: number;
+  armorPierce: number;
+  kettenSpruenge: number;
+  auraStaerke: number;
+  onHit: EffectSpec;
   /** Sekunden bis zum naechsten Schuss. */
   cooldown: number;
   /** Ticks, in denen der Turm stumm ist. */

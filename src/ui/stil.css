@@ -1,0 +1,518 @@
+/*
+ * Gestaltung der Oberflaeche.
+ *
+ * Eckig, dunkel, mit klaren Kanten. Keine runden Ecken, keine weichen
+ * Verlaeufe: die Oberflaeche soll zur Klotzwelt passen. Alle Bedienelemente
+ * liegen im unteren Bereich und sind mindestens 44 Pixel hoch, damit sie sich
+ * im Querformat mit den Daumen treffen lassen.
+ */
+
+:root {
+  --bg: #0b0e14;
+  --tafel: #151a23;
+  --tafel-hell: #1e2531;
+  --rand: #2c3340;
+  --rand-hell: #3d4657;
+  --text: #e6edf3;
+  --text-schwach: #8b98a5;
+  --gold: #e6b84a;
+  --leben: #ff6b6b;
+  --akzent: #7fd4ff;
+  --gruen: #7fd46a;
+  --violett: #b39bff;
+  --orange: #ff9a4d;
+
+  --wald: #5b8c3e;
+  --glut: #ff6a2a;
+  --leere: #8b5cf6;
+
+  --rand-breite: 2px;
+  --sicher-oben: env(safe-area-inset-top, 0px);
+  --sicher-unten: env(safe-area-inset-bottom, 0px);
+  --sicher-links: env(safe-area-inset-left, 0px);
+  --sicher-rechts: env(safe-area-inset-right, 0px);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#spielfeld {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+#spielfeld canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#ui-wurzel {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#ui-wurzel > * {
+  pointer-events: auto;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+#ui > * {
+  pointer-events: auto;
+}
+
+#ueberlagerung {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+#ueberlagerung > * {
+  pointer-events: auto;
+}
+
+/* --- Grundbausteine ------------------------------------------------------ */
+
+.tafel {
+  background: var(--tafel);
+  border: var(--rand-breite) solid var(--rand);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+.taste {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--tafel-hell);
+  color: var(--text);
+  border: var(--rand-breite) solid var(--rand-hell);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.06s ease, background 0.12s ease;
+}
+
+.taste:active {
+  transform: translateY(2px);
+  background: var(--rand);
+}
+
+.taste[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.taste.stark {
+  background: var(--akzent);
+  color: #07121a;
+  border-color: #b7e8ff;
+}
+
+.taste.gefahr {
+  background: #57242a;
+  border-color: #7d3740;
+}
+
+.taste.aktiv {
+  background: var(--akzent);
+  color: #07121a;
+  border-color: #b7e8ff;
+}
+
+.taste.klein {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.zahl {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.schwach {
+  color: var(--text-schwach);
+}
+
+.gold {
+  color: var(--gold);
+}
+.leben {
+  color: var(--leben);
+}
+.akzent {
+  color: var(--akzent);
+}
+
+/* --- Kopfleiste im Spiel ------------------------------------------------- */
+
+.leiste {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(8px + var(--sicher-oben)) calc(12px + var(--sicher-rechts)) 8px
+    calc(12px + var(--sicher-links));
+  background: linear-gradient(180deg, rgba(8, 10, 15, 0.92), rgba(8, 10, 15, 0));
+}
+
+.leiste .werte {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.wert {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.wert .marke {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-schwach);
+  font-weight: 600;
+}
+
+.luecke {
+  flex: 1;
+}
+
+/* --- Fussleiste ---------------------------------------------------------- */
+
+.fussleiste {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px calc(12px + var(--sicher-rechts)) calc(10px + var(--sicher-unten))
+    calc(12px + var(--sicher-links));
+  background: linear-gradient(0deg, rgba(8, 10, 15, 0.92), rgba(8, 10, 15, 0));
+}
+
+.tempo {
+  display: flex;
+  gap: 4px;
+}
+
+.wellentaste {
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 18px;
+  min-height: 52px;
+  line-height: 1.15;
+}
+
+.wellentaste .unten {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-schwach);
+}
+
+.wellentaste.stark .unten {
+  color: #0d2430;
+}
+
+/* --- Aufsteigende Tafeln ------------------------------------------------- */
+
+.ueberlagerung {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 8, 12, 0.82);
+  padding: calc(16px + var(--sicher-oben)) 16px calc(16px + var(--sicher-unten));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dialog {
+  width: min(720px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dialog h1 {
+  font-size: 22px;
+  letter-spacing: 0.01em;
+}
+
+.dialog h2 {
+  font-size: 16px;
+  color: var(--text-schwach);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.reihe {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.raster {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+/* --- Karten und Listen --------------------------------------------------- */
+
+.eintrag {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--tafel-hell);
+  border: var(--rand-breite) solid var(--rand);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+}
+
+.eintrag:active {
+  transform: translateY(2px);
+}
+
+.eintrag[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.eintrag.gewaehlt {
+  border-color: var(--akzent);
+  background: #1b2a34;
+}
+
+.eintrag .titel {
+  font-weight: 700;
+}
+
+.eintrag .zeile {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-schwach);
+}
+
+.sterne {
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+
+.fortschritt {
+  height: 6px;
+  background: #0a0d12;
+  border: 1px solid var(--rand);
+}
+
+.fortschritt > span {
+  display: block;
+  height: 100%;
+  background: var(--akzent);
+}
+
+/* --- Bau- und Turmmenue -------------------------------------------------- */
+
+.schweber {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 16px));
+  font-size: 13px;
+  z-index: 5;
+}
+
+.schweber .kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.schweber .kopf .name {
+  font-weight: 700;
+}
+
+.turmwahl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.turmwahl button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 8px;
+  background: var(--tafel-hell);
+  border: var(--rand-breite) solid var(--rand);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.turmwahl button[disabled] {
+  opacity: 0.4;
+}
+
+.turmwahl .preis {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.werteliste {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  font-size: 13px;
+}
+
+.werteliste dt {
+  color: var(--text-schwach);
+}
+
+.werteliste dd {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Meldungen ----------------------------------------------------------- */
+
+.meldung {
+  position: absolute;
+  left: 50%;
+  top: 64px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: rgba(20, 24, 32, 0.95);
+  border: var(--rand-breite) solid var(--rand-hell);
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.meldung.sichtbar {
+  opacity: 1;
+}
+
+/* --- Region als Farbakzent ---------------------------------------------- */
+
+.region-wald {
+  border-left: 4px solid var(--wald);
+}
+.region-glut {
+  border-left: 4px solid var(--glut);
+}
+.region-leere {
+  border-left: 4px solid var(--leere);
+}
+
+/* --- Schmale Bildschirme ------------------------------------------------- */
+
+@media (max-height: 420px) {
+  .leiste {
+    padding-top: calc(4px + var(--sicher-oben));
+    padding-bottom: 4px;
+  }
+  .fussleiste {
+    padding-bottom: calc(6px + var(--sicher-unten));
+  }
+  .dialog {
+    padding: 12px;
+    gap: 10px;
+  }
+}
+
+/* --- Hinweis auf das Querformat ----------------------------------------- */
+
+#hochformat {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  background: var(--bg);
+  z-index: 10;
+  pointer-events: auto;
+}
+
+@media (orientation: portrait) and (max-width: 900px) {
+  #hochformat {
+    display: flex;
+  }
+}
+
+/* --- Hintergrund je Region ---------------------------------------------- */
+
+body {
+  transition: background 0.6s ease;
+}
+
+body.im-wald {
+  background: radial-gradient(120% 90% at 50% 40%, #16281a 0%, #0b1210 55%, #070a0c 100%);
+}
+
+body.im-glut {
+  background: radial-gradient(120% 90% at 50% 40%, #2a1410 0%, #150b0d 55%, #08060a 100%);
+}
+
+body.im-leere {
+  background: radial-gradient(120% 90% at 50% 40%, #1b1433 0%, #100c1e 55%, #06050c 100%);
+}

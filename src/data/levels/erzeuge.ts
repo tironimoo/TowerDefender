@@ -8,7 +8,7 @@
  */
 
 import type { Vec2 } from '@shared/math';
-import type { BuildSlotDef, LevelDef, PropDef, Region, WaveDef } from '@sim/model/types';
+import type { BuildSlotDef, LevelDef, PropDef, Region, TileKind, WaveDef } from '@sim/model/types';
 import { createRng } from '@sim/core/rng';
 
 export interface LevelPlan {
@@ -200,10 +200,37 @@ export function erzeugeLevel(plan: LevelPlan): LevelDef {
     props.push({ x: slot.x + 0.75, y: slot.y + 0.75, model: 'prop_fackel', dir: 0 });
   });
 
+  // --- Kachelarten ---------------------------------------------------------
+  const kacheln: TileKind[] = [];
+  for (let y = 0; y < plan.hoehe; y++) {
+    for (let x = 0; x < plan.breite; x++) {
+      const mitte = { x: x + 0.5, y: y + 0.5 };
+      if (abstandZumWeg(plan.paths, mitte.x, mitte.y) < 0.8) {
+        kacheln.push('weg');
+      } else if (fluessig.some((feld) => feld.x === x && feld.y === y)) {
+        kacheln.push('fluessig');
+      } else {
+        kacheln.push('boden');
+      }
+    }
+  }
+
+  // Wegkacheln ausserhalb der Karte, damit Ein- und Ausgang nicht im Nichts
+  // haengen.
+  const randWeg: { x: number; y: number }[] = [];
+  for (let y = -2; y < plan.hoehe + 2; y++) {
+    for (let x = -2; x < plan.breite + 2; x++) {
+      if (x >= 0 && y >= 0 && x < plan.breite && y < plan.hoehe) continue;
+      if (abstandZumWeg(plan.paths, x + 0.5, y + 0.5) < 0.9) randWeg.push({ x, y });
+    }
+  }
+
   return {
     id: plan.id,
     name: plan.name,
     region: plan.region,
+    kacheln,
+    randWeg,
     breite: plan.breite,
     hoehe: plan.hoehe,
     paths: plan.paths,

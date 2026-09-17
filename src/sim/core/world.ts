@@ -18,7 +18,7 @@ import type {
   Tower,
   TowerDef,
 } from '../model/types';
-import { DIFFICULTY, KEINE_BONI, NO_EFFECT } from '../model/types';
+import { DIFFICULTY, KEIN_TURM_BONUS, KEINE_BONI, NO_EFFECT } from '../model/types';
 import type { World } from '../model/world';
 import { createRng } from './rng';
 import { buildRoute } from './route';
@@ -35,6 +35,12 @@ export interface CreateWorldOptions {
   readonly mutatorId?: string;
   /** Erlaubte Tuerme. Leer bedeutet alle. */
   readonly loadout?: readonly string[];
+  /**
+   * Endlos-Modus.
+   * Die Wellen hoeren nicht auf, die letzte wiederholt sich immer staerker.
+   * Die Partie endet erst, wenn die Leben aufgebraucht sind.
+   */
+  readonly endlos?: boolean;
 }
 
 export function createWorld(options: CreateWorldOptions): World {
@@ -66,9 +72,10 @@ export function createWorld(options: CreateWorldOptions): World {
     loadout: options.loadout ?? [],
     gold: level.startGold + boni.startGold,
     lives: level.lives + boni.zusatzLeben,
+    startLives: level.lives + boni.zusatzLeben,
     wavesStarted: 0,
     wavesCleared: 0,
-    waveCount: level.waves.length + mods.extraWaves,
+    waveCount: options.endlos === true ? 9999 : level.waves.length + mods.extraWaves,
     // Vor der ersten Welle gibt es keine Zeitbegrenzung, ausser der Mutator
     // nimmt sie weg.
     waveTimer: mutator?.keineVorbereitung === true ? 5 : -1,
@@ -263,7 +270,8 @@ function commandStartWave(world: World): void {
  * spaeter, jeden Schritt neu, siehe systems/auren.ts.
  */
 export function applyTowerStats(world: World, tower: Tower, def: TowerDef): void {
-  let damage = def.damage;
+  const turmBonus = world.boni.tuerme.get(def.id) ?? KEIN_TURM_BONUS;
+  let damage = def.damage + turmBonus.schadenPlus;
   let range = def.range;
   for (let step = 0; step < tower.level; step++) {
     const upgrade = def.upgrades[step];
@@ -273,16 +281,29 @@ export function applyTowerStats(world: World, tower: Tower, def: TowerDef): void
   }
 
   const boni = world.boni;
-  damage *= (boni.turmSchaden.get(def.id) ?? 1) * boni.globalerSchaden;
-  range *= (boni.turmReichweite.get(def.id) ?? 1) * boni.globaleReichweite;
-  range *= world.mutator?.turmReichweite ?? 1;
+  const turm = turmBonus;
+
+  damage *= turm.schaden * boni.globalerSchaden;
+  range *= turm.reichweite * boni.globaleReichweite * (world.mutator?.turmReichweite ?? 1);
 
   tower.baseDamage = damage;
   tower.baseRange = range;
-  tower.baseFireRate = def.fireRate * (boni.turmFeuerrate.get(def.id) ?? 1);
+  tower.baseFireRate = def.fireRate * turm.feuerrate;
   tower.damage = damage;
   tower.range = range;
   tower.fireRate = tower.baseFireRate;
+
+  tower.splashRadius = def.splashRadius > 0 ? def.splashRadius + turm.splash : turm.splash;
+  tower.armorPierce = Math.min(1, def.armorPierce + turm.durchschlag);
+  tower.kettenSpruenge =
+    def.special.kind === 'kette' ? def.special.jumps + turm.kettenSpruenge : 0;
+  tower.auraStaerke = turm.auraStaerke;
+  tower.onHit = {
+    slowFactor: Math.min(1, def.onHit.slowFactor + (def.onHit.slowFactor > 0 ? turm.verlangsamung : 0)),
+    slowDuration: def.onHit.slowDuration,
+    burnDps: def.onHit.burnDps > 0 ? def.onHit.burnDps + turm.brandDps : 0,
+    burnDuration: def.onHit.burnDuration,
+  };
 }
 
 export function findTower(world: World, towerId: number): Tower | null {
@@ -361,6 +382,11 @@ function createTower(): Tower {
     damage: 0,
     range: 0,
     fireRate: 0,
+    splashRadius: 0,
+    armorPierce: 0,
+    kettenSpruenge: 0,
+    auraStaerke: 1,
+    onHit: NO_EFFECT,
     cooldown: 0,
     stunTicks: 0,
     policy: 'erster',

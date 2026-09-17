@@ -28,7 +28,10 @@
       "@data/*": ["src/data/*"],
       "@shared/*": ["src/shared/*"],
       "@render/*": ["src/render/*"],
-      "@app/*": ["src/app/*"]
+      "@app/*": ["src/app/*"],
+      "@meta/*": ["src/meta/*"],
+      "@platform/*": ["src/platform/*"],
+      "@ui/*": ["src/ui/*"]
     }
   },
   "include": ["src", "tools", "tests", "vite.config.ts", "eslint.config.js"]

@@ -35,6 +35,8 @@ export interface World {
 
   gold: number;
   lives: number;
+  /** Leben zu Beginn. Grundlage fuer die Sternewertung. */
+  readonly startLives: number;
 
   /** Wie viele Wellen bereits gestartet wurden. */
   wavesStarted: number;

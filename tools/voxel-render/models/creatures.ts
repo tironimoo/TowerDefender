@@ -151,11 +151,11 @@ const aschefalter = floater({
 
 const glutgeist = floater({
   id: 'glutgeist',
-  core: GLUT.lava,
-  shell: GLUT.russ,
+  core: GLUT.magma,
+  shell: GLUT.basaltHell,
   glowColor: GLUT.glut,
-  size: 8,
-  hover: 6,
+  size: 9,
+  hover: 7,
 });
 
 const schildwart = humanoid({

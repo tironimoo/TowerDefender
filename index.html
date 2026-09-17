@@ -6,44 +6,25 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0d1117" />
+    <meta name="theme-color" content="#0b0e14" />
+    <meta name="description" content="Ein Tower-Defense-Spiel im Klotz-Stil." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230d1117'/%3E%3Crect x='5' y='3' width='6' height='10' fill='%238fd694'/%3E%3Crect x='5' y='11' width='6' height='2' fill='%234f8a55'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0e14'/%3E%3Crect x='4' y='9' width='8' height='4' fill='%238b9098'/%3E%3Crect x='5' y='4' width='6' height='5' fill='%238a6234'/%3E%3Crect x='6' y='2' width='4' height='2' fill='%23e6b84a'/%3E%3C/svg%3E"
     />
     <title>TowerDefender</title>
-    <style>
-      :root {
-        color-scheme: dark;
-      }
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #0d1117;
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        color: #e6edf3;
-        -webkit-user-select: none;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-        overscroll-behavior: none;
-      }
-      #spielfeld {
-        display: block;
-        width: 100%;
-        height: 100%;
-        touch-action: none;
-      }
-    </style>
   </head>
   <body>
     <div id="spielfeld"></div>
+    <div id="ui-wurzel"></div>
+    <div id="hochformat">
+      <div>
+        <h1>Bitte quer halten</h1>
+        <p class="schwach">TowerDefender braucht die Breite fuer die Karte.</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -20,8 +20,18 @@ export default tseslint.config(
     },
   },
   {
+    // Bauskripte laufen in Node und duerfen dessen Umgebung nutzen.
     files: ['tools/**/*.mjs'],
-    languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        window: 'readonly',
+      },
+    },
   },
   {
     // Die Simulation bleibt rein: keine Grafik, keine Plattform, kein

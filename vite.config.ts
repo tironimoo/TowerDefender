@@ -12,6 +12,9 @@ export default defineConfig({
       '@shared': resolvePath('./src/shared'),
       '@render': resolvePath('./src/render'),
       '@app': resolvePath('./src/app'),
+      '@meta': resolvePath('./src/meta'),
+      '@platform': resolvePath('./src/platform'),
+      '@ui': resolvePath('./src/ui'),
     },
   },
   server: {
