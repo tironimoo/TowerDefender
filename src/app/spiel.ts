@@ -436,7 +436,8 @@ export class Spiel {
     if (world === undefined) return false;
     for (const gegner of world.enemies.items) {
       if (!gegner.active) continue;
-      if (world.content.enemies.get(gegner.defId)?.boss != null) return true;
+      const def = world.content.enemies.get(gegner.defId);
+      if (def !== undefined && def.boss !== null) return true;
     }
     return false;
   }
