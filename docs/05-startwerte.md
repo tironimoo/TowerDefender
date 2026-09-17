@@ -1,139 +1,186 @@
-# Startwerte für das Balancing
+# Startwerte
 
-Diese Zahlen sind der Ausgangspunkt, nicht das Ergebnis. Sie existieren, damit
-der erste spielbare Stand nicht bei null anfängt. Ausbalanciert wird später mit
-Messungen aus dem Simulationswerkzeug, siehe `03-architektur.md`.
+Diese Datei wird erzeugt. Nicht von Hand aendern, sondern die Daten unter
+`src/data` und dann `npm run doku` ausfuehren.
 
-Alle Werte landen in Datendateien unter `src/data/`. Keiner davon steht im Code.
+Erzeugt am 2026-09-17.
 
 ## Einheiten
 
-- Reichweite in Kacheln
+- Reichweite und Flaeche in Kacheln
 - Tempo in Kacheln pro Sekunde
-- Feuerrate in Schüssen pro Sekunde
-- Schaden pro Treffer, sofern nicht anders vermerkt
+- Feuerrate in Schuessen pro Sekunde
+- Schaden je Treffer, sofern nicht anders vermerkt
 
-## Türme, Grundstufe
+## Tuerme
 
-| Turm | Kosten | Schaden | Rate | Reichweite | Art | Luft |
-|---|---|---|---|---|---|---|
-| Armbrustturm | 100 | 12 | 1,2 | 3,5 | physisch | ja |
-| Balliste | 220 | 95 | 0,35 | 7,0 | physisch | ja |
-| Blitzspule | 180 | 18 | 0,8 | 3,0 | arkan | ja |
-| Schleuder | 140 | 30 | 0,6 | 4,5 | physisch | nein |
-| Glutdüse | 160 | 8 | 4,0 | 2,5 | Feuer | nein |
-| Ambossfalle | 90 | 120 | 0,125 | Weg | physisch | nein |
-| Frostturm | 130 | 0 | 1,0 | 2,5 | Kontrolle | ja |
-| Netzwerfer | 150 | 0 | 0,14 | 4,0 | Kontrolle | ja |
-| Kolbenstoß | 110 | 0 | 0,2 | 1,8 | Kontrolle | nein |
-| Leuchtfeuer | 200 | 0 | dauerhaft | 3,0 | Verstärkung | entfällt |
-| Alchemieturm | 190 | 0 | dauerhaft | 3,5 | Schwächung | entfällt |
-| Späherturm | 80 | 0 | dauerhaft | 5,0 | Aufdeckung | entfällt |
-
-Sondereffekte:
-
-- Balliste durchschlägt die Hälfte der Panzerung.
-- Blitzspule springt auf bis zu vier Ziele, jeder Sprung mit einem Viertel
-  weniger Schaden.
-- Schleuder trifft im Umkreis von 1,2 Kacheln.
-- Glutdüse trifft einen Kegel und setzt in Brand, sechs Schaden pro Sekunde
-  über drei Sekunden, nicht stapelbar.
-- Ambossfalle steht auf dem Weg statt auf einem Bauplatz und lädt acht Sekunden.
-- Frostturm verlangsamt um 35 Prozent im Umkreis, höchstens zweifach gestapelt.
-- Netzwerfer hält ein Einzelziel zwei Sekunden vollständig fest.
-- Kolbenstoß schiebt Gegner anderthalb Kacheln auf dem Weg zurück.
-- Leuchtfeuer gibt benachbarten Türmen 20 Prozent Schaden und 15 Prozent
-  Reichweite. Wirkt nicht auf andere Leuchtfeuer.
-- Alchemieturm senkt Panzerung um 40 Prozent und erhöht erlittenen Schaden um
-  15 Prozent.
+| Turm | Kosten | Schaden | Rate | Weite | Art | Luft | Besonderheit |
+|---|---|---|---|---|---|---|---|
+| Armbrustturm | 100 | 12 | 1.2 | 3.5 | physisch | ja | — |
+| Schleuder | 140 | 30 | 0.6 | 4.5 | physisch | nein | Flaeche 1.2 |
+| Frostturm | 130 | 6 | 1 | 2.5 | arkan | ja | Flaeche 2.5, verlangsamt 35 % fuer 2 s |
+| Glutduese | 160 | 8 | 4 | 2.5 | feuer | nein | Flaeche 1, Brand 6/s fuer 3 s |
+| Balliste | 220 | 95 | 0.35 | 7 | physisch | ja | Durchschlag 50 %, Forschung noetig |
+| Blitzspule | 180 | 18 | 0.8 | 3 | arkan | ja | 3 Spruenge, je 25 % schwaecher, Forschung noetig |
+| Ambossfalle | 90 | 120 | 0.125 | 1 | physisch | nein | Flaeche 0.9, Durchschlag 25 %, steht auf dem Weg, Forschung noetig |
+| Netzwerfer | 150 | 0 | 0.14 | 4 | arkan | ja | verlangsamt 100 % fuer 2 s, Forschung noetig |
+| Kolbenstoss | 110 | 6 | 0.2 | 1.8 | physisch | nein | Flaeche 1.8, Rueckstoss 1.5, Forschung noetig |
+| Leuchtfeuer | 200 | 0 | 0 | 3 | arkan | nein | +20 % Schaden im Umkreis, +15 % Reichweite im Umkreis, Forschung noetig |
+| Alchemieturm | 190 | 0 | 0 | 3.5 | arkan | nein | -40 % Panzerung, +15 % erlittener Schaden, Forschung noetig |
+| Spaehturm | 80 | 0 | 0 | 5 | arkan | nein | +10 % Reichweite im Umkreis, deckt Unsichtbare auf, Forschung noetig |
 
 ## Ausbau
 
-Drei Stufen, danach eine einmalige Wahl zwischen zwei Endformen.
+Drei Stufen. Die Zuwaechse multiplizieren sich: eine Stufe mit plus 55
+Prozent erhoeht den bereits erreichten Wert.
 
 | Stufe | Kosten als Anteil des Grundpreises | Schaden | Reichweite |
 |---|---|---|---|
 | 1 | 60 % | +55 % | +8 % |
 | 2 | 100 % | +55 % | +8 % |
 | 3 | 160 % | +55 % | +8 % |
-| Endform | 200 % | eigene Wirkung | eigene Wirkung |
 
-Verkauf erstattet 70 Prozent des Investierten. Die Forschung kann das erhöhen.
+Verkauf erstattet 70 Prozent des Investierten.
+Die Forschung kann das erhoehen.
 
-## Gegner, Grundwerte in der ersten Welle ihrer Region
+## Gegner
 
-### Waldsenke
+| Gegner | Leben | Tempo | Panzerung | Gold | Besonderheit |
+|---|---|---|---|---|---|
+| Moderling | 60 | 0.8 | leder | 8 | — |
+| Krabbler | 18 | 2.2 | leder | 3 | — |
+| Knochenschuetze | 90 | 1 | eisen | 13 | legt Tuerme im Umkreis 2.6 fuer 2.5 s still |
+| Sprengling | 45 | 1.6 | leder | 10 | detoniert einmal, legt Tuerme im Umkreis 1.7 still |
+| Magmakoloss | 480 | 0.5 | obsidian | 38 | zerfaellt in 2 kolosssplitter |
+| Kolosssplitter | 120 | 0.9 | obsidian | 6 | — |
+| Aschefalter | 70 | 1.8 | leder | 12 | fliegt |
+| Glutgeist | 140 | 1.2 | obsidian | 18 | immun gegen feuer, legt Tuerme im Umkreis 2.2 fuer 2 s still |
+| Schildwart | 200 | 0.9 | eisen | 26 | schildet 70 im Umkreis 3.2 alle 4 s |
+| Schreiter | 260 | 1.1 | aetherisch | 28 | springt 3.5 Kacheln alle 5 s |
+| Leerenbrut | 120 | 2.4 | leder | 20 | unsichtbar |
+| Echo | 180 | 1 | aetherisch | 30 | heilt 34 im Umkreis 3.5 alle 2.5 s |
+| Rissgaenger | 420 | 1 | eisen | 44 | unter 50 % Leben 2fach schnell |
+| Waldwaechter | 2600 | 0.55 | eisen | 220 | Boss mit 3 Phasen |
+| Schmelzherz | 4200 | 0.5 | obsidian | 300 | Boss mit 4 Phasen |
+| Der Verschlinger | 7200 | 0.5 | obsidian | 420 | Boss mit 3 Phasen |
 
-| Gegner | Leben | Tempo | Panzerung | Gold |
-|---|---|---|---|---|
-| Moderling | 60 | 0,8 | Leder | 6 |
-| Krabbler | 18 | 2,2 | Leder | 2 |
-| Knochenschütze | 90 | 1,0 | Eisen | 10 |
-| Sprengling | 45 | 1,6 | Leder | 8 |
+## Panzerung gegen Schadensart
 
-### Glutschlucht
+| Panzerung | physisch | feuer | arkan |
+|---|---|---|---|
+| leder | 100 % | 100 % | 100 % |
+| eisen | 40 % | 100 % | 110 % |
+| obsidian | 90 % | 20 % | 110 % |
+| aetherisch | 0 % | 0 % | 100 % |
 
-| Gegner | Leben | Tempo | Panzerung | Gold |
-|---|---|---|---|---|
-| Magmakoloss | 480 | 0,5 | Obsidian | 30 |
-| Aschefalter | 70 | 1,8 | Leder | 9 |
-| Glutgeist | 140 | 1,2 | Obsidian | 14 |
-| Schildwart | 200 | 0,9 | Eisen | 20 |
+Durchschlag hebt einen Teil des Widerstands auf. Eine vollstaendige
+Immunitaet bleibt jedoch immun.
 
-### Leerlande
+## Karten
 
-| Gegner | Leben | Tempo | Panzerung | Gold |
-|---|---|---|---|---|
-| Schreiter | 260 | 1,1 | ätherisch | 22 |
-| Leerenbrut | 120 | 2,4 | Leder | 16 |
-| Echo | 180 | 1,0 | ätherisch | 24 |
-| Rissgänger | 420 | 1,0 | Eisen | 35 |
+| Nr | Karte | Region | Groesse | Wege | Bauplaetze | Fallen | Wellen | Startgold | Albtraum |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Lichtung am Moorbach | wald | 20×12 | 1 | 12 | 2 | 10 | 250 | hetze |
+| 2 | Nebelsenke | wald | 22×13 | 1 | 14 | 3 | 10 | 250 | kurzsichtig |
+| 3 | Zwei Furten | wald | 22×13 | 2 | 13 | 2 | 14 | 300 | teuer |
+| 4 | Wurzelgrund | wald | 22×13 | 1 | 18 | 4 | 14 | 320 | zaeh |
+| 5 | Basaltstege | glut | 22×13 | 1 | 16 | 4 | 16 | 340 | kurzsichtig |
+| 6 | Aschewind | glut | 24×14 | 2 | 18 | 4 | 16 | 360 | duerre |
+| 7 | Schmelzkessel | glut | 22×13 | 1 | 18 | 4 | 18 | 380 | gepanzert |
+| 8 | Wandelpfad | leere | 24×14 | 1 | 18 | 4 | 20 | 400 | hetze |
+| 9 | Dreifach | leere | 26×15 | 3 | 21 | 5 | 20 | 540 | teuer |
+| 10 | Der Schlund | leere | 24×14 | 2 | 18 | 5 | 25 | 460 | gepanzert |
 
-Der Rissgänger verdoppelt sein Tempo unter halbem Leben. Der Magmakoloss
-zerfällt beim Tod in zwei Splitter mit je einem Viertel seiner Werte.
+## Steigerung und Wirtschaft
 
-## Steigerung über die Wellen
-
-Innerhalb eines Levels steigt das Leben je Welle um elf Prozent gegenüber der
-vorherigen. Das Tempo bleibt konstant, sonst wird die Schwierigkeit unlesbar.
-Die Goldbelohnung steigt um vier Prozent je Welle, also deutlich langsamer als
-die Lebenspunkte. Dadurch wird es mit jeder Welle enger, ohne dass eine Zahl
-plötzlich springt.
-
-Schwierigkeitsgrade:
-
-| Grad | Leben | Tempo | Wellen | Gold |
-|---|---|---|---|---|
-| Normal | 100 % | 100 % | Grundzahl | 100 % |
-| Hart | 160 % | 110 % | +4 | 90 % |
-| Albtraum | 260 % | 120 % | +8 | 80 % |
-
-## Wirtschaft
-
-| Größe | Wert |
+| Groesse | Wert |
 |---|---|
-| Startgold | 250 |
-| Leben pro Karte | 20 |
-| Wellenbonus | 40 plus 8 je vorheriger Welle |
-| Vorzeitiger Start | 1 Gold je verbleibender Sekunde |
+| Leben je Welle | mal 1.095 gegenueber der vorherigen |
+| Gold je Welle | mal 1.06 |
+| Vorzeitiger Wellenstart | 1 Gold je verbleibender Sekunde |
+| Leben je Karte | 20, Bosse kosten alle auf einmal |
 
-## Wellenzahl je Level
+Bosse werden bewusst nicht mit der Wellensteigerung skaliert. Sie sind fuer
+ihre Karte entworfen.
 
-| Level | Wellen |
+## Schwierigkeitsgrade
+
+| Grad | Leben | Tempo | Gold | Zusatzwellen |
+|---|---|---|---|---|
+| normal | 100 % | 100 % | 100 % | +0 |
+| hart | 160 % | 110 % | 90 % | +4 |
+| albtraum | 260 % | 120 % | 80 % | +8 |
+
+Auf Albtraum traegt jede Karte zusaetzlich ihren eigenen Mutator.
+
+## Mutatoren
+
+| Mutator | Wirkung |
 |---|---|
-| 1 bis 2 | 10 |
-| 3 bis 4 | 14 |
-| 5 bis 6 | 16 |
-| 7 | 18 mit Boss |
-| 8 bis 9 | 20 |
-| 10 | 25 mit dreiphasigem Boss |
+| Gepanzert | Jeder Gegner startet mit einem Schild von einem Drittel seines Lebens. |
+| Knappe Kasse | Ausbauten kosten das Doppelte. |
+| Hetze | Keine Bauphase vor der ersten Welle, und alle Gegner sind schneller. |
+| Kurzsichtig | Alle Tuerme haben ein Viertel weniger Reichweite. |
+| Zaeh | Gegner haben die Haelfte mehr Leben, geben dafuer mehr Gold. |
+| Duerre | Ein Drittel weniger Gold aus allen Quellen. |
 
-## Prüfungen, die das Simulationswerkzeug dauerhaft absichert
+## Forschung
 
-1. Level 1 auf Normal ist mit Armbrustturm und Schleuder allein zu gewinnen.
-2. Kein Level ab 5 ist mit einem einzigen Turmtyp zu gewinnen.
-3. Kein Turm stellt über alle Level gemittelt mehr als ein Drittel des Schadens.
-4. Jeder der zwölf Türme ist in mindestens zwei Levels Teil einer erfolgreichen
-   Lösung. Ein Turm, der das nie schafft, ist zu schwach und wird geändert.
-5. Auf Albtraum kommt mindestens ein Gegner durch, wenn ohne Ausbau gespielt
-   wird. Sonst ist der Schwierigkeitsgrad ein Etikett ohne Wirkung.
+28 Knoten, zusammen 2255 Splitter.
+
+| Knoten | Ast | Kosten | Wirkung |
+|---|---|---|---|
+| Spaehturm | arsenal | 25 | Deckt unsichtbare Gegner auf und erhoeht die Reichweite der Nachbarn. |
+| Ambossfalle | arsenal | 35 | Eine Falle auf dem Weg. Schlaegt hart zu und laedt lange. |
+| Balliste | arsenal | 55 | Sehr grosse Reichweite, durchschlaegt die halbe Panzerung. |
+| Kolbenstoss | arsenal | 55 | Schiebt Gegner auf dem Weg zurueck und schenkt dir Zeit. |
+| Blitzspule | arsenal | 80 | Arkaner Blitz, der auf weitere Ziele springt. Unverzichtbar in den Leerlanden. |
+| Netzwerfer | arsenal | 80 | Haelt ein einzelnes Ziel vollstaendig fest. |
+| Leuchtfeuer | arsenal | 110 | Verstaerkt alle benachbarten Tuerme. |
+| Alchemieturm | arsenal | 110 | Bricht die Panzerung der Gegner im Umkreis. |
+| Geschliffen I | handwerk | 20 | Alle Tuerme richten fuenf Prozent mehr Schaden an. |
+| Geschliffen II | handwerk | 45 | Noch einmal sechs Prozent mehr Schaden. |
+| Geschliffen III | handwerk | 90 | Noch einmal sieben Prozent mehr Schaden. |
+| Weitblick I | handwerk | 25 | Vier Prozent mehr Reichweite fuer alle Tuerme. |
+| Weitblick II | handwerk | 60 | Noch einmal fuenf Prozent mehr Reichweite. |
+| Sparsam I | handwerk | 30 | Ausbauten kosten sechs Prozent weniger. |
+| Sparsam II | handwerk | 65 | Ausbauten kosten noch einmal sieben Prozent weniger. |
+| Sparsam III | handwerk | 120 | Ausbauten kosten noch einmal acht Prozent weniger. |
+| Ruecklage I | handwerk | 25 | Vierzig Gold mehr zu Beginn jeder Karte. |
+| Ruecklage II | handwerk | 55 | Noch einmal sechzig Gold mehr zu Beginn. |
+| Ruecklage III | handwerk | 100 | Noch einmal neunzig Gold mehr zu Beginn. |
+| Wiederverwertung I | handwerk | 30 | Verkaufen erstattet fuenf Prozent mehr. |
+| Wiederverwertung II | handwerk | 70 | Verkaufen erstattet noch einmal zehn Prozent mehr. |
+| Bollwerk I | kommando | 40 | Zwei Leben mehr auf jeder Karte. |
+| Bollwerk II | kommando | 95 | Noch einmal drei Leben mehr. |
+| Bollwerk III | kommando | 180 | Noch einmal fuenf Leben mehr. |
+| Drangsal I | kommando | 45 | Fuenfzehn Prozent mehr Bonus fuer vorzeitigen Wellenstart. |
+| Drangsal II | kommando | 100 | Noch einmal fuenfundzwanzig Prozent mehr Wellenbonus. |
+| Drangsal III | kommando | 190 | Noch einmal vierzig Prozent mehr Wellenbonus. |
+| Fuenfter Platz | kommando | 320 | Ein fuenfter Turm im Loadout. Der teuerste Knoten im Spiel, und der lohnendste. |
+
+## Meisterschaft
+
+Hoechststufe 20. Wahl auf den Stufen 5, 10, 15.
+
+| Stufe | Erfahrung insgesamt |
+|---|---|
+| 2 | 5.091 |
+| 5 | 50.312 |
+| 10 | 284.605 |
+| 15 | 784.279 |
+| 20 | 1.609.969 |
+
+Erfahrung entsteht nur aus tatsaechlich angerichtetem Schaden. Ein
+mitgeschleppter Turm steigt nicht auf.
+
+## Pruefungen, die das Simulationswerkzeug absichert
+
+Siehe `tests/balance.test.ts` und `npm run balance`.
+
+1. Karte 1 ist mit Armbrustturm und Schleuder allein zu gewinnen.
+2. Alle zehn Karten sind auf Normal mit einem passenden Loadout zu schaffen.
+3. Ein Loadout ohne Schadensquelle kann nie gewinnen.
+4. In den Leerlanden scheitert ein rein physischer Aufbau, ein arkaner nicht.
+5. Kein einzelner Turm traegt mehr als 85 Prozent des Schadens.
+6. Gleicher Ausgangswert ergibt immer dasselbe Ergebnis.

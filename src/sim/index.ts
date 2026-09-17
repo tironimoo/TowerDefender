@@ -18,6 +18,8 @@ export {
   waveGoldFactor,
   SELL_REFUND,
   EARLY_START_BONUS_PER_SECOND,
+  WAVE_HEALTH_GROWTH,
+  WAVE_GOLD_GROWTH,
 } from './core/balance';
 export * from './model/types';
 export type { World } from './model/world';

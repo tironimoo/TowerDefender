@@ -30,6 +30,8 @@ export default tseslint.config(
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         window: 'readonly',
+        performance: 'readonly',
+        requestAnimationFrame: 'readonly',
       },
     },
   },

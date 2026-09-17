@@ -15,6 +15,11 @@ export interface SchweberRueckrufe {
   readonly beiAusbauen: (towerId: number) => void;
   readonly beiVerkaufen: (towerId: number) => void;
   readonly beiZiel: (towerId: number, policy: TargetPolicy) => void;
+  /**
+   * Zeigt die Reichweite eines Turms, waehrend der Finger auf seiner Taste
+   * liegt. Ohne diese Vorschau baut man auf gut Glueck.
+   */
+  readonly beiVorschau: (towerDefId: string | null) => void;
 }
 
 /** Kurze Beschriftungen: auf dem Handy zaehlt jede Zeile Hoehe. */
@@ -39,6 +44,7 @@ export class Schweber {
   verbirg(): void {
     this.offen = false;
     this.element.style.display = 'none';
+    this.rueckrufe.beiVorschau(null);
   }
 
   get istOffen(): boolean {
@@ -100,8 +106,13 @@ export class Schweber {
       ]);
       knopf.addEventListener('click', (ereignis) => {
         ereignis.stopPropagation();
+        this.rueckrufe.beiVorschau(null);
         this.rueckrufe.beiBauen(slotIndex, id);
       });
+      knopf.addEventListener('pointerdown', () => this.rueckrufe.beiVorschau(id));
+      knopf.addEventListener('pointerenter', () => this.rueckrufe.beiVorschau(id));
+      knopf.addEventListener('pointerleave', () => this.rueckrufe.beiVorschau(null));
+      knopf.addEventListener('pointercancel', () => this.rueckrufe.beiVorschau(null));
       wahl.append(knopf);
     }
 

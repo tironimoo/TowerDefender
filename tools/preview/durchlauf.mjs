@@ -26,6 +26,39 @@ page.on('console', (nachricht) => {
   if (nachricht.type() === 'error') fehler.push(nachricht.text());
 });
 
+// Fuer die Sichtpruefung alles freischalten. Betrifft nur diesen Browser.
+if (process.argv.includes('--alles') || levelNummer > 1) {
+  await page.addInitScript(() => {
+    const sterne = {};
+    for (let i = 1; i <= 10; i++) {
+      sterne[`level-${String(i).padStart(2, '0')}`] = { normal: 3, hart: 3 };
+    }
+    window.localStorage.setItem(
+      'towerdefender.spielstand',
+      JSON.stringify({
+        version: 1,
+        splitter: 5000,
+        ausgegeben: 0,
+        forschung: [
+          'arsenal-spaehturm',
+          'arsenal-ambossfalle',
+          'arsenal-balliste',
+          'arsenal-kolbenstoss',
+          'arsenal-blitzspule',
+          'arsenal-netzwerfer',
+          'arsenal-leuchtfeuer',
+          'arsenal-alchemie',
+        ],
+        sterne,
+        meisterschaft: {},
+        loadouts: {},
+        endlos: {},
+        einstellungen: { ton: false, musik: false, vibration: false, tempo: 1 },
+      }),
+    );
+  });
+}
+
 await page.goto('http://localhost:4173/', { waitUntil: 'networkidle' });
 await page.waitForTimeout(1000);
 

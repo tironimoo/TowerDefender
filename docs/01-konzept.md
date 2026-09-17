@@ -1,7 +1,7 @@
 # Konzept
 
-Stand: 2026-09-17. Dieses Dokument beschreibt das Spiel. Zahlenwerte sind
-Startwerte für das Balancing und stehen später in Datendateien, nicht im Code.
+Dieses Dokument beschreibt das Spiel. Zahlenwerte stehen nicht hier, sondern
+in `05-startwerte.md`, das direkt aus den Daten erzeugt wird.
 
 ## Kurzfassung
 
@@ -92,9 +92,12 @@ kein neuer Gegner.
 | Name | Rolle | Verhalten |
 |---|---|---|
 | Moderling | Fleischschild | langsam, viel Leben, keine Besonderheit |
-| Krabbler | Schwarm | sehr schnell, wenig Leben, erscheint in Gruppen zu acht |
-| Knochenschütze | Panzerung | schießt im Vorbeigehen auf Türme und legt sie kurz still |
-| Sprengling | Störer | zündet neben einem Turm und deaktiviert ihn für drei Sekunden |
+| Krabbler | Schwarm | sehr schnell, wenig Leben, erscheint in Gruppen |
+| Knochenschütze | Panzerung | legt Türme in der Nähe regelmäßig für einige Sekunden still |
+| Sprengling | Störer | zündet einmal neben einem Turm und legt ihn still |
+
+Die ersten beiden Karten kommen bewusst ohne Panzerung aus. Die Lektion
+Panzerung beginnt auf Karte drei, wenn der Spieler die Grundlagen kann.
 
 ### Glutschlucht
 
@@ -102,7 +105,7 @@ kein neuer Gegner.
 |---|---|---|
 | Magmakoloss | Tank | zerfällt beim Tod in zwei kleinere Koloss-Splitter |
 | Aschefalter | Flieger | folgt nicht dem Weg, fliegt geradlinig zum Ziel |
-| Glutgeist | Konter | immun gegen Feuer, setzt getroffene Türme in Brand |
+| Glutgeist | Konter | vollständig immun gegen Feuer, legt Türme in der Nähe still |
 | Schildwart | Verstärker | gibt allen Gegnern im Umkreis einen absorbierenden Schild |
 
 ### Leerlande
@@ -110,7 +113,7 @@ kein neuer Gegner.
 | Name | Rolle | Verhalten |
 |---|---|---|
 | Schreiter | Durchbrecher | teleportiert sich in Abständen ein Wegstück nach vorn |
-| Leerenbrut | Attentäter | unsichtbar, bis ein Späherturm sie aufdeckt |
+| Leerenbrut | Attentäter | unsichtbar; ohne Späherturm nur auf kurze Distanz angreifbar |
 | Echo | Heiler | heilt fortlaufend den am stärksten verletzten Gegner in Reichweite |
 | Rissgänger | Elite | verdoppelt sein Tempo, sobald es unter halbes Leben fällt |
 
@@ -140,9 +143,14 @@ Kontrolleffekte stehen getrennt daneben und sind keine Schadensart: Verlangsamen
 durch Frost, Fesseln durch Netz, Rückstoß durch Kolben, Rüstungsbruch durch
 Alchemie.
 
+Dazu kommen vollständige Immunitäten, die getrennt von der Panzerung stehen.
+Der Glutgeist ist gegen Feuer immun, und kein Durchschlag der Welt ändert das.
+
 Damit bekommt die Loadout-Wahl vor dem Level Gewicht. Ein Aufbau ohne arkane
 Quelle scheitert an den ätherischen Gegnern in Region drei, unabhängig von der
-Schadenshöhe.
+Schadenshöhe. Weil das eine harte Lektion ist, richtet der Frostturm als
+einziger von Beginn an verfügbarer Turm ebenfalls arkanen Schaden an, wenn auch
+wenig. Wer die Blitzspule erforscht hat, tut sich deutlich leichter.
 
 ## Türme
 
@@ -181,9 +189,17 @@ Zwölf Türme in vier Rollen. Vier davon sind von Anfang an verfügbar, die
 | Alchemieturm | Schwächung | bricht Panzerung und erhöht erlittenen Schaden |
 | Späherturm | Aufdeckung | macht Unsichtbare sichtbar, erhöht Reichweite im Umkreis |
 
-Nicht jeder Turm trifft Luftziele. Armbrustturm, Balliste, Blitzspule und
-Frostturm können es, der Rest nicht. Das ist der Grund, warum das Loadout ab
-Region zwei überdacht werden muss.
+Nicht jeder Turm trifft Luftziele. Armbrustturm, Balliste, Blitzspule,
+Frostturm und Netzwerfer können es, der Rest nicht. Das ist der Grund, warum
+das Loadout ab Region zwei überdacht werden muss.
+
+Vier Türme stehen von Beginn an bereit: Armbrustturm, Schleuder, Frostturm und
+Glutdüse. Die übrigen acht kommen aus der Forschung.
+
+Unsichtbare Gegner sind ohne Späherturm nicht unangreifbar, sondern nur auf
+knapp der halben Reichweite sichtbar. Eine harte Sperre hätte ganze Karten
+unspielbar gemacht statt anspruchsvoll. So bleibt der Späherturm sehr wertvoll,
+ohne einen Loadout-Platz zu erzwingen.
 
 ## Zielauswahl
 
@@ -194,8 +210,9 @@ billig zu bauen und gibt erfahrenen Spielern viel Kontrolle, ohne Anfänger zu
 
 ## Ablauf eines Levels
 
-1. Vorbereitung: Loadout aus vier Türmen wählen, Karte und Wellenübersicht
-   ansehen.
+1. Vorbereitung: Loadout aus vier Türmen wählen, die Gegner der Karte samt
+   ihrer Panzerung und Besonderheiten ansehen. Ein fünfter Platz lässt sich
+   erforschen.
 2. Bauphase: Startgold platzieren, keine Zeitbegrenzung vor der ersten Welle.
 3. Wellen: zwischen den Wellen läuft ein Zähler, vorzeitiges Starten gibt
    Bonusgold. Das belohnt Können, ohne Anfänger zu bestrafen.
@@ -203,8 +220,9 @@ billig zu bauen und gibt erfahrenen Spielern viel Kontrolle, ohne Anfänger zu
    Endformen. Die Gabelung ist endgültig für diese Partie.
 5. Abschluss: Sternewertung nach verbleibenden Leben.
 
-Leben pro Karte: zwanzig. Drei Sterne bei zwanzig verbleibenden Leben, zwei
-Sterne ab fünfzehn, ein Stern bei mindestens einem.
+Leben pro Karte: zwanzig, durch Forschung mehr. Drei Sterne bei vollen Leben,
+zwei Sterne ab drei Vierteln, ein Stern bei mindestens einem. Ein
+durchgekommener Boss kostet alle Leben auf einmal.
 
 ## Bedienung auf dem Handy
 
@@ -216,3 +234,14 @@ Sterne ab fünfzehn, ein Stern bei mindestens einem.
   Spielern ständig benutzt und gehört an eine gut erreichbare Ecke.
 - Alle Bedienelemente liegen in den unteren Bildschirmdritteln, erreichbar mit
   den Daumen bei gehaltenem Gerät im Querformat.
+- Solange der Finger auf einem Turm im Baumenü liegt, zeigt ein Ring seine
+  Reichweite. Ohne diese Vorschau baut man auf gut Glück.
+- Der Weg trägt Richtungspfeile, der Eingang eine rote und das Ziel eine blaue
+  Markierung. Auf einer neuen Karte sieht man den Verlauf damit sofort.
+
+## Was das Spiel nicht tut
+
+- Keine Wartezeiten, keine Energie, keine Zufallskisten.
+- Kein Gegner, dessen einzige Eigenschaft eine größere Zahl ist.
+- Keine Verbesserung, die alles pauschal stärker macht, ohne etwas zu ändern.
+- Keine Werbung, keine Käufe.

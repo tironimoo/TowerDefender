@@ -42,6 +42,8 @@ export interface Spielstand {
   loadouts: Record<string, string[]>;
   /** Bestleistung im Endlos-Modus je Karte. */
   endlos: Record<string, number>;
+  /** Beste Wellenzahl je Kalenderwoche der Herausforderung. */
+  wochen: Record<string, number>;
   einstellungen: Einstellungen;
 }
 
@@ -55,6 +57,7 @@ export function neuerStand(): Spielstand {
     meisterschaft: {},
     loadouts: {},
     endlos: {},
+    wochen: {},
     einstellungen: { ton: true, musik: true, vibration: true, tempo: 1 },
   };
 }
@@ -94,6 +97,7 @@ export function migriere(roh: unknown): Spielstand {
     meisterschaft: (stand['meisterschaft'] as Spielstand['meisterschaft']) ?? {},
     loadouts: (stand['loadouts'] as Spielstand['loadouts']) ?? {},
     endlos: (stand['endlos'] as Spielstand['endlos']) ?? {},
+    wochen: (stand['wochen'] as Spielstand['wochen']) ?? {},
     einstellungen: {
       ...vorlage.einstellungen,
       ...((stand['einstellungen'] as Partial<Einstellungen>) ?? {}),

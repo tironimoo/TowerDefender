@@ -20,6 +20,8 @@ import {
   stufenFortschritt,
 } from '@meta/meisterschaft';
 import { loadoutPlaetze, verfuegbareTuerme } from '@meta/boni';
+import type { Herausforderung } from '@meta/herausforderung';
+import { beschreibe } from '@meta/herausforderung';
 
 const REGION_NAME: Readonly<Record<LevelDef['region'], string>> = {
   wald: 'Waldsenke',
@@ -504,16 +506,20 @@ export interface HauptmenueRueckrufe {
   readonly beiForschung: () => void;
   readonly beiMeisterschaft: () => void;
   readonly beiEinstellungen: () => void;
+  readonly beiHerausforderung: () => void;
 }
 
 export function hauptmenue(
   stand: Spielstand,
   content: Content,
+  herausforderung: Herausforderung,
   rueckrufe: HauptmenueRueckrufe,
 ): HTMLElement {
   const geschafft = content.levelReihenfolge.filter(
     (id) => sterneFuer(stand, id, 'normal') > 0,
   ).length;
+  const bestwert = stand.wochen[String(herausforderung.woche)] ?? 0;
+  const wochenFrei = endlosOffen(stand, content);
 
   return dialog('TowerDefender', [
     el('div', { class: 'zeile schwach' }, [
@@ -525,6 +531,25 @@ export function hauptmenue(
       taste('Meisterschaft', rueckrufe.beiMeisterschaft),
       taste('Einstellungen', rueckrufe.beiEinstellungen),
     ]),
+    wochenFrei &&
+      el('div', { class: 'eintrag' }, [
+        el('div', { class: 'titelzeile' }, [
+          el('span', { class: 'titel' }, ['Herausforderung der Woche']),
+          el('span', { class: 'schwach' }, [
+            bestwert > 0 ? `beste Welle ${bestwert}` : 'noch nicht versucht',
+          ]),
+        ]),
+        el('div', { class: 'zeile' }, [
+          el('span', {}, [beschreibe(herausforderung, content)]),
+        ]),
+        el('div', { class: 'reihe' }, [
+          taste('Antreten', rueckrufe.beiHerausforderung, 'klein stark'),
+        ]),
+      ]),
+    !wochenFrei &&
+      el('div', { class: 'zeile schwach' }, [
+        'Die Herausforderung der Woche oeffnet, sobald die letzte Karte geschafft ist.',
+      ]),
   ]);
 }
 

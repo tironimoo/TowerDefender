@@ -22,6 +22,11 @@ export class Kamera {
   private zoom = 1;
   private x = 0;
   private y = 0;
+  /** Verbleibende Erschuetterung in Sekunden und ihre Staerke in Pixeln. */
+  private ruettelRest = 0;
+  private ruettelStaerke = 0;
+  private ruettelX = 0;
+  private ruettelY = 0;
 
   constructor(
     private readonly wurzel: Container,
@@ -95,6 +100,35 @@ export class Kamera {
     return this.zoom;
   }
 
+  /**
+   * Kurze Erschuetterung.
+   * Nur fuer Ereignisse, die weh tun: ein Durchbruch, ein Phasenwechsel eines
+   * Bosses. Staendiges Ruetteln macht ein Spiel unlesbar.
+   */
+  ruettle(staerke: number, dauer = 0.28): void {
+    this.ruettelStaerke = Math.max(this.ruettelStaerke, staerke);
+    this.ruettelRest = Math.max(this.ruettelRest, dauer);
+  }
+
+  /** Muss jedes Bild aufgerufen werden, damit die Erschuetterung ausklingt. */
+  aktualisiere(dt: number, tick: number): void {
+    if (this.ruettelRest <= 0) {
+      if (this.ruettelX !== 0 || this.ruettelY !== 0) {
+        this.ruettelX = 0;
+        this.ruettelY = 0;
+        this.uebertrage();
+      }
+      return;
+    }
+    this.ruettelRest -= dt;
+    const anteil = Math.max(0, this.ruettelRest / 0.28);
+    const staerke = this.ruettelStaerke * anteil;
+    this.ruettelX = Math.sin(tick * 1.7) * staerke;
+    this.ruettelY = Math.cos(tick * 2.3) * staerke * 0.6;
+    if (this.ruettelRest <= 0) this.ruettelStaerke = 0;
+    this.uebertrage();
+  }
+
   private begrenze(): void {
     const halbeBreite = (this.ausmasse.breite * this.zoom) / 2;
     const halbeHoehe = (this.ausmasse.hoehe * this.zoom) / 2;
@@ -115,7 +149,7 @@ export class Kamera {
   }
 
   private uebertrage(): void {
-    this.wurzel.position.set(this.x, this.y);
+    this.wurzel.position.set(this.x + this.ruettelX, this.y + this.ruettelY);
     this.wurzel.scale.set(this.zoom);
   }
 }

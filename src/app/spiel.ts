@@ -25,6 +25,7 @@ import {
 } from '@meta/spielstand';
 import * as menue from '@ui/menues';
 import { el } from '@ui/bausteine';
+import { herausforderungFuer, wochenNummer } from '@meta/herausforderung';
 import { klang } from '@platform/klang';
 import { vibriere } from '@platform/haptik';
 
@@ -43,6 +44,12 @@ interface Auftrag {
   readonly levelId: string;
   readonly difficulty: Difficulty;
   readonly endlos: boolean;
+  /** Mutator. Leer bedeutet: der Schwierigkeitsgrad entscheidet. */
+  readonly mutatorId: string;
+  /** Feste Zufallsfolge. Null bedeutet: jedes Mal neu. */
+  readonly seed: number | null;
+  /** Kalenderwoche, wenn es die Herausforderung der Woche ist. */
+  readonly woche: number | null;
   loadout: string[];
 }
 
@@ -122,13 +129,30 @@ export class Spiel {
     this.ansicht = 'hauptmenue';
     this.beendePartie();
     this.setzeUeberlagerung(
-      menue.hauptmenue(this.stand, this.content, {
+      menue.hauptmenue(this.stand, this.content, herausforderungFuer(wochenNummer(Date.now()), this.content), {
         beiSpielen: () => this.zeigeLevelAuswahl(),
         beiForschung: () => this.zeigeForschung(),
         beiMeisterschaft: () => this.zeigeMeisterschaft(),
         beiEinstellungen: () => this.zeigeEinstellungen(),
+        beiHerausforderung: () => this.starteHerausforderung(),
       }),
     );
+  }
+
+  /** Startet die Herausforderung der Woche mit festem Loadout und Mutator. */
+  private starteHerausforderung(): void {
+    const woche = wochenNummer(Date.now());
+    const h = herausforderungFuer(woche, this.content);
+    this.auftrag = {
+      levelId: h.levelId,
+      difficulty: h.difficulty,
+      endlos: true,
+      mutatorId: h.mutatorId,
+      seed: h.seed,
+      woche,
+      loadout: [...h.loadout],
+    };
+    void this.starteLevel();
   }
 
   private zeigeLevelAuswahl(): void {
@@ -146,7 +170,15 @@ export class Spiel {
     const level = this.content.levels.get(levelId);
     if (level === undefined) return;
     this.ansicht = 'loadout';
-    this.auftrag = { levelId, difficulty, endlos, loadout: [] };
+    this.auftrag = {
+      levelId,
+      difficulty,
+      endlos,
+      mutatorId: '',
+      seed: null,
+      woche: null,
+      loadout: [],
+    };
 
     this.setzeUeberlagerung(
       menue.loadoutWahl(this.stand, this.content, level, difficulty, endlos, {
@@ -179,9 +211,10 @@ export class Spiel {
       loadout: auftrag.loadout,
       difficulty: auftrag.difficulty,
       boni: berechneBoni(this.stand, this.content),
-      seed: Math.floor(Math.random() * 0xffffffff),
-      mutatorId: '',
+      seed: auftrag.seed ?? Math.floor(Math.random() * 0xffffffff),
+      mutatorId: auftrag.mutatorId,
       endlos: auftrag.endlos,
+      vibration: this.stand.einstellungen.vibration,
       tempo: this.stand.einstellungen.tempo,
       beiEnde: (world) => this.zeigeErgebnis(world, level),
       beiMenue: () => this.zeigePause(),
@@ -218,7 +251,10 @@ export class Spiel {
     if (auftrag === null) return;
     this.ansicht = 'ergebnis';
     klang.stoppeMusik();
-    vibriere(world.status === 'gewonnen' ? 'erfolg' : 'fehlschlag', this.stand);
+    vibriere(
+      world.status === 'gewonnen' ? 'erfolg' : 'fehlschlag',
+      this.stand.einstellungen.vibration,
+    );
 
     const sterneJetzt = this.berechneSterne(world);
     const vorher = sterneFuer(this.stand, level.id, auftrag.difficulty);
@@ -245,7 +281,14 @@ export class Spiel {
     }
 
     let neuerBestwert = false;
-    if (auftrag.endlos) {
+    if (auftrag.woche !== null) {
+      const schluessel = String(auftrag.woche);
+      const bisher = this.stand.wochen[schluessel] ?? 0;
+      if (world.wavesCleared > bisher) {
+        this.stand.wochen[schluessel] = world.wavesCleared;
+        neuerBestwert = true;
+      }
+    } else if (auftrag.endlos) {
       const bisher = this.stand.endlos[level.id] ?? 0;
       if (world.wavesCleared > bisher) {
         this.stand.endlos[level.id] = world.wavesCleared;

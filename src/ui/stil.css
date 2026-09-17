@@ -86,8 +86,19 @@ body {
   z-index: 2;
 }
 
-#ui > * {
+/*
+ * Nur die wirklich bedienbaren Teile fangen Beruehrungen ab. Alles andere
+ * liegt durchlaessig darueber, sonst blockiert eine Ansage die Tasten.
+ */
+#ui .leiste,
+#ui .fussleiste,
+#ui .schweber {
   pointer-events: auto;
+}
+
+#ui .ansagen,
+#ui .meldung {
+  pointer-events: none;
 }
 
 #ueberlagerung {
@@ -613,4 +624,103 @@ body.im-glut {
 
 body.im-leere {
   background: radial-gradient(120% 90% at 50% 40%, #1b1433 0%, #100c1e 55%, #06050c 100%);
+}
+
+/* --- Ansagen ------------------------------------------------------------- */
+
+.ansagen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 28%;
+  transform: translate(-50%, -50%) scale(0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  text-align: center;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+.banner.sichtbar {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.banner .gross {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.banner .klein {
+  font-size: 14px;
+  color: var(--text-schwach);
+  font-weight: 600;
+}
+
+.bossleiste {
+  position: absolute;
+  left: 50%;
+  top: calc(46px + var(--sicher-oben));
+  transform: translateX(-50%);
+  width: min(420px, 70vw);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.bossleiste .bossname {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.bossbalken {
+  width: 100%;
+  height: 8px;
+  background: #0a0d12;
+  border: 2px solid var(--rand-hell);
+}
+
+.bossbalken > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--leben), var(--orange));
+  transition: width 0.15s linear;
+}
+
+/* Rote Kante, wenn nur noch wenige Leben bleiben. */
+.warnung {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(120% 90% at 50% 50%, rgba(255, 60, 60, 0) 55%, rgba(255, 40, 40, 0.32) 100%);
+}
+
+.warnung.sichtbar {
+  opacity: 1;
+  animation: pochen 1.6s ease-in-out infinite;
+}
+
+@keyframes pochen {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }

@@ -11,23 +11,25 @@ zu nennen.
 | Sprache | TypeScript, strikter Modus | Fehler fallen beim Schreiben auf, nicht im Spiel |
 | Bauwerkzeug | Vite | startet sofort, lädt Änderungen live nach |
 | Darstellung | PixiJS 8 | schnelle 2D-Grafik über die Grafikkarte |
+| Oberfläche | HTML und CSS über dem Spielfeld | Listen und Menüs sind kein Fall für eine Spiel-Bibliothek |
+| Ton | WebAudio, erzeugt statt abgespielt | keine Tondateien, passt zum eckigen Stil |
 | Verpackung | Capacitor | dieselbe Codebasis wird zur iOS- und Android-App |
 | Tests | Vitest | läuft ohne Browser, schnell genug für jeden Speichervorgang |
-| Karteneditor | Tiled | Wege und Bauplätze visuell setzen, exportiert JSON |
+| Sichtprüfung | Playwright | fährt das Spiel im echten Browser und macht Bilder |
 
-Das Spiel läuft immer zuerst im Browser. Capacitor kommt erst dazu, wenn es
-sich gut anfühlt. Damit bleibt die Rückmeldeschleife kurz.
+Das Spiel läuft immer zuerst im Browser. Capacitor kommt erst am Ende dazu.
+Damit bleibt die Rückmeldeschleife kurz.
 
 ## Der wichtigste Grundsatz: Simulation getrennt von Darstellung
 
 Die Spiellogik kennt PixiJS nicht. Kein einziger Import. Sie weiß nichts von
-Sprites, Bildschirmgrößen oder Eingaben.
+Sprites, Bildschirmgrößen oder Eingaben. Eine Linterregel erzwingt das.
 
 ```
 Eingabe  ->  Befehle  ->  Simulation  ->  Zustand + Ereignisse  ->  Darstellung
 ```
 
-Die Simulation nimmt Befehle entgegen, etwa "baue Frostturm auf Platz 7",
+Die Simulation nimmt Befehle entgegen, etwa „baue Frostturm auf Platz 7",
 rechnet einen festen Zeitschritt und liefert danach ihren Zustand sowie eine
 Liste von Ereignissen. Die Darstellung liest den Zustand und spielt die
 Ereignisse als Bild und Ton ab.
@@ -39,7 +41,7 @@ Vier Dinge werden dadurch möglich, die sonst sehr mühsam sind:
    Balancing zu messen statt zu raten.
 3. Ruckler in der Darstellung verändern den Spielverlauf nicht.
 4. Wiederholungen von Partien sind möglich, weil derselbe Zufall dieselbe
-   Partie ergibt.
+   Partie ergibt. Genau darauf beruht die wöchentliche Herausforderung.
 
 Diese Trennung ist der Kern des ganzen Entwurfs. Wenn später etwas schwer
 umzubauen ist, dann meistens deshalb, weil jemand sie aufgeweicht hat.
@@ -47,8 +49,7 @@ umzubauen ist, dann meistens deshalb, weil jemand sie aufgeweicht hat.
 ## Zeit
 
 Die Simulation läuft mit festem Zeitschritt von sechzig Schritten pro Sekunde.
-Die Darstellung läuft so schnell wie das Gerät kann und rechnet zwischen zwei
-Simulationsschritten weich um.
+Die Darstellung läuft so schnell wie das Gerät kann.
 
 Bei Bildratenproblemen werden höchstens fünf Schritte nachgeholt. Danach wird
 Zeit verworfen. Das verhindert die Todesspirale, in der ein langsames Gerät
@@ -61,11 +62,7 @@ die Zeit innerhalb eines Schrittes. Das hält das Verhalten identisch.
 ## Zufall
 
 Ein gesetzter Zufallsgenerator pro Partie. In der Simulation gibt es kein
-`Math.random` und kein `Date.now`. Beides wird durch eine Prüfregel im
-Linter verboten.
-
-Der Ausgangswert wird im Spielstand abgelegt. Damit sind Wiederholungen, die
-wöchentliche Herausforderung und reproduzierbare Fehlerberichte möglich.
+`Math.random` und kein `Date.now`. Beides wird durch eine Linterregel verboten.
 
 ## Aufbau der Simulation
 
@@ -78,25 +75,26 @@ laufen:
 
 1. Wellen erzeugen Gegner
 2. Gegner bewegen sich am Weg entlang
-3. Zustandseffekte ticken, also Brand, Verlangsamung, Fesselung
-4. Türme wählen Ziele nach ihrer Priorität
-5. Türme feuern, Abklingzeiten laufen
-6. Geschosse fliegen und treffen
-7. Schaden wird aufgelöst, Panzerung und Widerstände verrechnet
-8. Tode werden ausgewertet, Gold und Erfahrung vergeben
-9. Durchgekommene Gegner ziehen Leben ab
-10. Sieg oder Niederlage wird geprüft
-11. Ereignisse werden nach außen gegeben
+3. Zustandseffekte ticken: Brand, Verlangsamung, Fesselung, Turmstörung
+4. Auren werden neu berechnet: Verstärkung, Panzerungsbruch, Aufdeckung
+5. Sonderverhalten: Schilde, Heilung, Sprünge, Raserei, Bossphasen
+6. Türme wählen Ziele nach ihrer Priorität und feuern
+7. Geschosse fliegen und treffen
+8. Schaden wird aufgelöst, Immunität, Panzerung, Schild und Verstärkung verrechnet
+9. Tode werden ausgewertet, Gold vergeben, Splitter erzeugt
+10. Durchgekommene Gegner ziehen Leben ab
+11. Abgeräumte Wellen werden belohnt
+12. Sieg oder Niederlage wird geprüft
 
-Feste Reihenfolge bedeutet: gleicher Eingang ergibt gleichen Ausgang. Ohne das
-gibt es keine Reproduzierbarkeit.
+Auren werden in jedem Schritt vollständig neu berechnet und nie aufsummiert.
+Dadurch kann ein verkaufter Turm keine Wirkung hinterlassen, und es gibt keinen
+Zustand, der auseinanderlaufen kann.
 
 ## Wege
 
 Weil die Wege fest sind, brauchen wir keine Wegsuche. Jeder Weg ist ein
 Linienzug aus der Kartendatei. Ein Gegner merkt sich nur, wie weit er auf
-diesem Linienzug schon gelaufen ist. Position und Blickrichtung ergeben sich
-daraus.
+diesem Linienzug schon gelaufen ist.
 
 Das ist wenig Code, sehr schnell und sehr robust. Es macht außerdem die
 Sonderfälle einfach:
@@ -104,49 +102,36 @@ Sonderfälle einfach:
 - Flieger ignorieren den Linienzug und fliegen gerade zum Ziel.
 - Der Schreiter erhöht seinen Streckenwert sprunghaft.
 - Der Kolbenstoß verringert ihn.
-- Die Zielpriorität "Erster" ist ein Vergleich dieses einen Wertes.
-
-Karten mit mehreren Eingängen haben mehrere Linienzüge. Mehr ist nicht nötig.
-
-## Schadensmodell
-
-```
-Schaden = Grundwert
-        * Widerstand[Panzerung][Schadensart]
-        * (1 + Verstärkung)
-        - Restpanzerung
-```
-
-Alle Werte stehen in Datendateien. Kein Zahlenwert für Balance steht im Code.
-Das klingt nach einer Kleinigkeit und ist der Unterschied zwischen einem
-Balancing-Durchgang von zehn Minuten und einem von zwei Tagen.
+- Die Zielpriorität „Erster" ist ein Vergleich dieses einen Wertes.
 
 ## Ordnerstruktur
 
 ```
 src/
-  app/        Start, Spielschleife, Szenenwechsel
+  app/        Start, Spielschleife, Kamera, laufende Partie
   sim/        reine Spiellogik, kein PixiJS
-    core/     Welt, Objektlisten, Zufall, Zeit
-    systems/  die elf Systeme von oben
+    core/     Welt, Befehle, Zufall, Wege, Schritt
+    systems/  die zwölf Systeme von oben
     model/    Typen
-  render/     PixiJS-Ansichten, Partikel, Kamera
-  ui/         Menüs als HTML-Ebene über dem Spielfeld
-  data/       Türme, Gegner, Wellen, Level, Balance
-  meta/       Spielstand, Forschung, Meisterschaft
-  platform/   Speicher, Ton, Vibration, Capacitor
-  shared/     Mathematik, Ereignisse, Hilfsfunktionen
+  render/     Projektion, Sprite-Blätter, Karte, Figuren, Partikel
+  ui/         Menüs und Anzeige als HTML über dem Spielfeld
+  data/       Türme, Gegner, Wellen, Karten, Mutatoren, Prüfung
+  meta/       Spielstand, Forschung, Meisterschaft, Wochenaufgabe
+  platform/   Speicher, Ton, Vibration
+  shared/     Mathematik, Objektvorräte
 tools/
   voxel-render/  Modelle zu Sprite-Blättern
-  atlas/         Sprite-Blätter packen
   sim-runner/    Simulation ohne Grafik für Balancing
-assets/          Grafiken, nicht im Repo
+  preview/       Sichtprüfung im echten Browser
+  doku/          erzeugt die Wertetabellen
+public/atlas/    die erzeugten Sprite-Blätter
 docs/            diese Dokumente
 tests/
 ```
 
-Eine Regel dazu wird durch den Linter erzwungen: `sim/` darf nichts aus
-`render/`, `ui/` oder `platform/` importieren.
+Zwei Regeln erzwingt der Linter: `src/sim` darf nichts aus `render`, `ui` oder
+`platform` importieren, und in `src/sim` sind `Math.random` und Echtzeit
+verboten.
 
 ## Oberfläche
 
@@ -155,81 +140,83 @@ Das Spielfeld ist PixiJS. Die Menüs sind HTML und CSS als Ebene darüber.
 Begründung: Forschungsbaum, Loadout-Auswahl und Einstellungen sind Listen,
 Textlayouts und Bildlaufbereiche. Das ist genau das, wofür HTML gemacht ist.
 Diese Dinge in einer Spiel-Bibliothek nachzubauen kostet Wochen und wird nie so
-gut. Die Anzeige während des Spiels, also Gold, Leben, Wellenzähler und das
-Ringmenü am Bauplatz, liegt dagegen in PixiJS, weil sie sich mit der Kamera
-bewegen und zum Spielfeld passen muss.
+gut. Auch das Bau- und Turmmenü ist HTML, wird aber an die Bildschirmposition
+des gewählten Platzes gerechnet und klappt nach unten, wenn es oben nicht passt.
 
 ## Grafik-Pipeline
 
 Die Modelle werden nicht von Hand gezeichnet, sondern gerendert. Der Ablauf ist
-ein Skript und läuft automatisch:
+ein Skript und läuft in unter vier Sekunden durch:
 
-1. Ein Voxel-Modell liegt als Datei vor, zusammen mit seiner Textur.
-2. Ein kleines Programm stellt es in eine Szene mit festem Licht, fester
-   Kamera und festem Schattenwurf.
-3. Es wird aus acht Richtungen und über alle Bewegungsphasen abfotografiert.
-4. Alle Bilder werden zu einem Sprite-Blatt pro Region gepackt.
-5. Das Spiel lädt nur die fertigen Blätter.
+1. Ein Modell besteht aus achsenparallelen Kästen mit Farbe und Drehpunkt.
+2. Ein eigener kleiner Renderer bildet jede Fläche als Parallelogramm ab und
+   füllt sie mit einer kleinen Textur. Dafür braucht es keine 3D-Bibliothek:
+   jede orthografische Abbildung eines Rechtecks ist wieder ein Parallelogramm.
+3. Feste Lichtrichtung über alle Modelle, daraus entsteht die Plastizität.
+4. Jedes Bild bekommt einen dunklen Umriss, damit Figuren auf jedem Untergrund
+   lesbar bleiben.
+5. Die Bilder werden eng zugeschnitten und zu einem Blatt je Modell gepackt.
 
-Vorteile: einheitliche Beleuchtung über alle Objekte, sofortiges Neurendern bei
-Stiländerungen, und die Laufzeit bleibt reine 2D-Last.
+Ein Blatt je Modell statt eines großen: eine Karte lädt nur die vier Türme
+ihres Loadouts und die Gegner ihrer Wellen. Das spart auf dem Gerät echten
+Grafikspeicher.
 
-Die Quelldateien liegen in `assets/` und sind über `.gitignore` vom Repo
-ausgeschlossen. Geladen wird über eine Manifest-Datei, die Modelle auf
-Spielobjekte abbildet. Ein späterer Wechsel des Grafiksatzes ist damit ein
-Austausch dieses Ordners und nicht ein Umbau des Spiels.
+Die erzeugten Blätter liegen im Repo, damit das Spiel nach dem Klonen sofort
+startet. Neu bauen mit `npm run assets`.
 
 ## Speicherstand
 
 Ein JSON-Objekt mit Versionsnummer. Beim Laden läuft es durch eine Kette von
-Migrationsfunktionen bis zur aktuellen Version. Diese Kette wird ab dem ersten
+Migrationsfunktionen bis zur aktuellen Version. Diese Kette wurde ab dem ersten
 Tag gebaut, nicht nachträglich. Nachträglich bedeutet, dass irgendwann alle
 Spielstände verloren gehen.
 
-Gespeichert werden Forschung, Meisterschaft, Sterne, Loadout-Vorlagen,
-Bestwerte im Endlos-Modus und Einstellungen. Der Zugriff läuft über eine einzige
-Schnittstelle, die im Browser den lokalen Speicher und auf dem Gerät die
-Capacitor-Ablage nutzt.
+Fehlende Felder werden beim Laden ergänzt, ein beschädigter Stand wird durch
+einen frischen ersetzt, statt das Spiel zu blockieren.
+
+Der Zugriff läuft über eine einzige Schnittstelle, die im Browser den lokalen
+Speicher und in der App die Ablage von Capacitor nutzt.
 
 ## Balancing durch Messung
 
-Das Werkzeug `sim-runner` startet die Simulation ohne jede Grafik. Ein Aufruf
-rechnet ein Level mit einem bestimmten Loadout hundertfach durch und gibt aus:
+Drei Werkzeuge:
 
-- wie oft gewonnen wurde
-- wie viele Gegner durchkamen und in welcher Welle
-- der Goldverlauf über die Zeit
-- welcher Turm welchen Anteil am Schaden hatte
-- wie lange jeder Gegnertyp im Schnitt überlebte
+- `npm run balance` rechnet alle zehn Karten mit mehreren sinnvollen Loadouts
+  durch und zeigt, welche Karte kippt. Dabei wird die Stärke angesetzt, die ein
+  Spieler an dieser Stelle im Spiel tatsächlich hätte.
+- `npm run verlauf` zeigt eine einzelne Partie Welle für Welle: Zusammensetzung,
+  Leben, Gold, Turmzahl, Durchbrüche.
+- `npm run sim` rechnet eine Karte mit einem bestimmten Loadout durch und zeigt
+  den Schadensanteil je Turm.
 
-Daraus werden feste Prüfungen, die bei jeder Änderung mitlaufen. Zum Beispiel:
-Level 1 muss mit dem Anfangs-Loadout zuverlässig zu gewinnen sein. Level 10 darf
-mit keinem einzelnen Turm allein zu gewinnen sein. Kein Turm darf über alle Level
-hinweg mehr als ein Drittel des Schadens stellen.
+Daraus sind feste Prüfungen in `tests/balance.test.ts` geworden, die bei jeder
+Änderung mitlaufen. Balancing per Gefühl ist der Punkt, an dem die meisten
+Projekte dieser Art scheitern.
 
-Das ist der eigentliche Grund für die Trennung von Simulation und Darstellung.
-Balancing per Gefühl ist der Punkt, an dem die meisten Projekte dieser Art
-scheitern.
+Der automatische Spieler in diesen Werkzeugen ist bewusst mittelmäßig: er baut
+eine Grundabdeckung, lässt die Turmzahl mit der Wellennummer wachsen, baut
+darüber hinaus aus und mischt die Turmtypen. Er misst damit eine Untergrenze,
+kein Optimum.
 
-## Leistungsziele
+## Leistung
 
-| Größe | Ziel |
-|---|---|
-| Bilder pro Sekunde | 60 auf einem Mittelklasse-Android |
-| gleichzeitige Gegner | bis 250 |
-| gleichzeitige Geschosse | bis 400 |
-| Zeichenaufrufe für Spielobjekte | wenige, durch ein Blatt pro Region |
-| Speicherzuweisungen pro Schritt | keine, alles wiederverwendet |
+| Größe | Ziel | Maßnahme |
+|---|---|---|
+| Bilder pro Sekunde | 60 auf einem Mittelklassegerät | Boden als eine Textur zwischengespeichert |
+| Zeichenaufrufe | wenige | ein Blatt je Modell, Stapelverarbeitung durch PixiJS |
+| Speicherzuweisungen je Schritt | keine | Gegner, Geschosse und Partikel aus Vorräten |
+| Bildpunktdichte | höchstens zweifach | begrenzt beim Start |
 
-Gegner, Geschosse und Partikel werden aus Vorräten entnommen und zurückgegeben,
-statt neu erzeugt zu werden. Das vermeidet Ruckler durch die Speicherbereinigung
-und ist einer der wenigen Punkte, an denen sich Vorsorge von Anfang an wirklich
-lohnt.
+`node tools/preview/leistung.mjs` misst die Bildrate im Gefecht in einem echten
+Browser.
 
 ## Qualitätssicherung
 
-- Typprüfung und Linter laufen vor jedem Speichern.
-- Einheitentests für Schadensrechnung, Wegfortschritt, Zielauswahl, Wirtschaft.
-- Simulationstests für ganze Level als Regressionsschutz beim Balancing.
-- Alle Inhaltsdateien werden gegen ein Schema geprüft, damit ein Tippfehler in
-  einer Gegnerdatei sofort auffällt und nicht als seltsames Verhalten endet.
+- Typprüfung, Linter und Tests laufen über `npm run check`.
+- Einheitentests für Schadensrechnung, Wegfortschritt, Zielauswahl, Wirtschaft,
+  Objektvorräte und Zufall.
+- Ein Test je Sonderfähigkeit von Türmen und Gegnern.
+- Simulationstests für ganze Karten als Regressionsschutz beim Balancing.
+- Tests für Forschung, Meisterschaft, Spielstand und Wochenaufgabe.
+- Alle Inhaltsdateien werden gegen eine Prüfung gehalten, damit ein Tippfehler
+  in einer Gegnerdatei sofort als klare Meldung auffällt.

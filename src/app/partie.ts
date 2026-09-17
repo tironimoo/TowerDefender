@@ -8,7 +8,7 @@
 
 import type { Application} from 'pixi.js';
 import { Container } from 'pixi.js';
-import type { Boni, Content, Difficulty, LevelDef, World } from '@sim/index';
+import type { Boni, Content, Difficulty, LevelDef, SimEvent, World } from '@sim/index';
 import { applyCommand, createWorld, drainEvents, step, TICKS_PER_SECOND } from '@sim/index';
 import { atlas } from '@render/atlas';
 import { baueKarte, blaetterFuer } from '@render/karte';
@@ -18,7 +18,9 @@ import { zuBildschirm, zuKachel } from '@render/projektion';
 import { Kamera } from './kamera';
 import { Hud } from '@ui/hud';
 import { Schweber } from '@ui/schweber';
+import { Ansage } from '@ui/ansage';
 import { klang } from '@platform/klang';
+import { vibriere } from '@platform/haptik';
 
 /** Hoechstens so viele Simulationsschritte werden nachgeholt. */
 const MAX_NACHHOLEN = 5;
@@ -36,6 +38,8 @@ export interface PartieOptionen {
   readonly seed: number;
   readonly mutatorId: string;
   readonly endlos: boolean;
+  /** Ob das Geraet vibrieren darf. */
+  readonly vibration: boolean;
   readonly tempo: number;
   readonly beiEnde: (world: World) => void;
   readonly beiMenue: () => void;
@@ -50,9 +54,12 @@ export class Partie {
   private readonly wurzel = new Container();
   private readonly szene = new Szene();
   private readonly schweber: Schweber;
+  private readonly ansage = new Ansage();
   private readonly kamera: Kamera;
   private readonly karte: KartenBild;
   private auswahl: Auswahl = null;
+  /** Turm, dessen Reichweite gerade vorgezeigt wird. */
+  private vorschauTurm: string | null = null;
   private restMs = 0;
   private tempo: number;
   private beendet = false;
@@ -76,6 +83,9 @@ export class Partie {
     });
 
     this.karte = baueKarte(optionen.level);
+    // Der Boden aendert sich nie. Als eine einzige Textur zwischengespeichert
+    // wird aus mehreren hundert Zeichenaufrufen je Bild genau einer.
+    this.karte.boden.cacheAsTexture(true);
     this.szene.fuegeRequisitenEin(this.karte.requisiten);
     this.wurzel.addChild(this.karte.boden, this.szene.welt, this.szene.ueberlagerung);
     optionen.app.stage.addChild(this.wurzel);
@@ -119,8 +129,11 @@ export class Partie {
         this.befehl({ type: 'ziel-setzen', towerId, policy });
         this.aktualisiereAuswahl();
       },
+      beiVorschau: (towerDefId) => {
+        this.vorschauTurm = towerDefId;
+      },
     });
-    this.hud.element.append(this.schweber.element);
+    this.hud.element.append(this.ansage.element, this.schweber.element);
 
     this.verbindeEingabe(optionen.app);
   }
@@ -189,9 +202,7 @@ export class Partie {
       const ereignisse = drainEvents(this.world);
       this.szene.verarbeite(ereignisse, this.world);
       klang.ausEreignissen(ereignisse);
-      for (const ereignis of ereignisse) {
-        if (ereignis.type === 'befehl-abgelehnt') this.hud.zeigeMeldung(ereignis.grund);
-      }
+      this.verarbeiteAnsagen(ereignisse);
 
       if (this.world.status === 'gewonnen' || this.world.status === 'verloren') {
         this.beendet = true;
@@ -199,9 +210,46 @@ export class Partie {
       }
     }
 
+    this.kamera.aktualisiere(dtMs / 1000, this.world.tick);
     this.szene.zeichne(this.world, (dtMs / 1000) * this.tempo);
     this.hud.aktualisiere(this.world, jetzt);
+    this.ansage.aktualisiere(this.world, jetzt);
     this.zeigeAuswahl();
+  }
+
+  /** Macht aus Ereignissen Ansagen, Warnungen und Erschuetterungen. */
+  private verarbeiteAnsagen(ereignisse: readonly SimEvent[]): void {
+    for (const ereignis of ereignisse) {
+      switch (ereignis.type) {
+        case 'befehl-abgelehnt':
+          this.hud.zeigeMeldung(ereignis.grund);
+          break;
+        case 'welle-gestartet': {
+          const zusatz = ereignis.bonus > 0 ? `Bonus ${ereignis.bonus} Gold` : '';
+          this.ansage.zeige(`Welle ${ereignis.wave}`, zusatz, 1400);
+          break;
+        }
+        case 'welle-geschafft':
+          this.hud.zeigeMeldung(`Welle ${ereignis.wave} abgeraeumt · +${ereignis.reward} Gold`);
+          break;
+        case 'gegner-durch':
+          this.kamera.ruettle(7);
+          vibriere('durchbruch', this.optionen.vibration);
+          break;
+        case 'bossphase':
+          this.kamera.ruettle(11, 0.45);
+          this.ansage.zeige('Der Boss veraendert sich', 'Panzerung und Tempo wechseln', 1600);
+          break;
+        case 'gewonnen':
+          this.ansage.zeige('Geschafft', '', 1200);
+          break;
+        case 'verloren':
+          this.kamera.ruettle(14, 0.6);
+          break;
+        default:
+          break;
+      }
+    }
   }
 
   // --- Eingabe -------------------------------------------------------------
@@ -344,6 +392,17 @@ export class Partie {
     if (this.auswahl.art === 'platz') {
       const slot = this.world.level.buildSlots[this.auswahl.index];
       if (slot === undefined) return;
+      if (this.vorschauTurm !== null) {
+        const def = this.world.content.towers.get(this.vorschauTurm);
+        if (def !== undefined) {
+          const turmBonus = this.world.boni.tuerme.get(def.id);
+          reichweite =
+            def.range *
+            (turmBonus?.reichweite ?? 1) *
+            this.world.boni.globaleReichweite *
+            (this.world.mutator?.turmReichweite ?? 1);
+        }
+      }
       zuBildschirm(slot.x, slot.y, this.hilfsPunkt);
       weltX = this.hilfsPunkt.x;
       weltY = this.hilfsPunkt.y;

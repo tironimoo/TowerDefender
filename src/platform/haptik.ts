@@ -6,8 +6,6 @@
  * nervt und leert den Akku.
  */
 
-import type { Spielstand } from '@meta/spielstand';
-
 export type Anlass = 'erfolg' | 'fehlschlag' | 'durchbruch';
 
 const MUSTER: Readonly<Record<Anlass, readonly number[]>> = {
@@ -16,8 +14,8 @@ const MUSTER: Readonly<Record<Anlass, readonly number[]>> = {
   durchbruch: [35],
 };
 
-export function vibriere(anlass: Anlass, stand: Spielstand): void {
-  if (!stand.einstellungen.vibration) return;
+export function vibriere(anlass: Anlass, erlaubt: boolean): void {
+  if (!erlaubt) return;
   try {
     navigator.vibrate?.([...MUSTER[anlass]]);
   } catch {

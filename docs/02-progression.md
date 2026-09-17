@@ -42,18 +42,23 @@ Währung sind Splitter. Quellen:
 - Endlos-Modus nach erreichter Wellenzahl
 - wöchentliche Herausforderung
 
-Der Baum hat drei Äste und rund vierzig Knoten.
+Der Baum hat drei Äste und 28 Knoten. Die vollständige Liste steht in
+`05-startwerte.md` und wird aus den Daten erzeugt.
 
 - **Arsenal.** Schaltet die acht zusätzlichen Türme frei. Jeder Turm kostet
   spürbar, das Freischalten ist ein Ereignis und kein Häkchen.
 - **Handwerk.** Allgemeine Verbesserungen: Ausbaukosten, Startgold, Reichweite,
   Projektiltempo, Verkaufswert.
 - **Kommando.** Systemische Effekte: zusätzliches Leben pro Karte, höherer
-  Bonus für vorzeitigen Wellenstart, zweite speicherbare Zielpriorität,
-  ein fünfter Loadout-Platz als teuerster Knoten im Spiel.
+  Bonus für vorzeitigen Wellenstart, und ein fünfter Loadout-Platz als
+  teuerster Knoten im Spiel.
 
 Knoten haben Voraussetzungen, aber keine Sackgassen. Ein Anfänger soll nichts
-dauerhaft verbauen können. Umverteilen kostet Splitter, ist aber immer möglich.
+dauerhaft verbauen können. Umverteilen gibt drei Viertel der ausgegebenen
+Splitter zurück und ist jederzeit möglich.
+
+Splitter kommen aus dem erstmaligen Abschluss einer Karte, aus jedem neuen
+Stern und aus dem Endlos-Modus.
 
 ## Meisterschaft
 
@@ -69,6 +74,10 @@ und auf drei Stufen eine echte Wahl zwischen zwei Spezialisierungen.
 | 10 | Veränderung der Rolle |
 | 15 | Zuspitzung, meist mit einem Nachteil |
 
+Zwölf Türme mal drei Wahlstufen mal zwei Möglichkeiten ergibt 72
+Spezialisierungen. Jede davon ist eine eigene Entscheidung mit eigenem Namen,
+keine Variante derselben Zahl.
+
 Beispiel Frostturm:
 
 - Stufe 5: stärkere Verlangsamung gegen weniger Reichweite, oder größere
@@ -81,7 +90,11 @@ Beispiel Frostturm:
 Spezialisierungen mit Nachteil sind Absicht. Sie erzeugen Aufbauten, über die
 man nachdenken muss, statt nur größerer Zahlen.
 
-Umlernen kostet Splitter und ist jederzeit möglich.
+Umlernen ist jederzeit möglich. Je Wahlstufe gilt genau eine Entscheidung, eine
+neue ersetzt die alte.
+
+Die Erfahrungskurve ist bewusst steil. Die erste Wahl auf Stufe fünf kommt nach
+wenigen Partien, die Höchststufe zwanzig erst nach vielen.
 
 ## Sterne, Schwierigkeit und Wiederspielbarkeit
 
@@ -101,9 +114,11 @@ Nach Level zehn öffnet der Endlos-Modus. Wellen werden fortlaufend stärker, di
 erreichte Wellenzahl ist die Bestenliste gegen dich selbst. Das ist der Teil,
 der nach dem Durchspielen trägt.
 
-Dazu eine wöchentliche Herausforderung: feste Karte, festes Loadout, feste
-Zufallsfolge, für alle gleich. Kostet uns wenig, weil die Simulation ohnehin
-mit gesetztem Zufall arbeitet.
+Dazu eine wöchentliche Herausforderung: feste Karte, fester Schwierigkeitsgrad,
+fester Mutator, festes Loadout aus allen zwölf Türmen und feste Zufallsfolge.
+Für alle gleich, jede Woche neu, und sie läuft endlos. Gewertet wird die
+erreichte Welle. Das kostet fast nichts, weil die Simulation ohnehin mit
+gesetztem Zufall arbeitet.
 
 ## Geplanter Verlauf
 
