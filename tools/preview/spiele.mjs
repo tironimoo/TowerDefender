@@ -103,7 +103,7 @@ for (const [x, y] of [
 ]) {
   await baueBei(x, y);
 }
-await page.mouse.click(60, 340);
+await page.mouse.click(820, 110);
 await page.waitForTimeout(200);
 
 await page.getByRole('button', { name: /Welle starten/ }).click();

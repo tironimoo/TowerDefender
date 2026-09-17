@@ -294,8 +294,8 @@ body {
 
 .raster {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
 }
 
 /* --- Karten und Listen --------------------------------------------------- */
@@ -303,8 +303,9 @@ body {
 .eintrag {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 3px;
+  padding: 8px 10px;
+  font-size: 13px;
   background: var(--tafel-hell);
   border: var(--rand-breite) solid var(--rand);
   text-align: left;
@@ -335,13 +336,45 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-schwach);
+}
+
+.eintrag .titelzeile {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .sterne {
   letter-spacing: 2px;
   color: var(--gold);
+}
+
+/* Schwierigkeitsgrade nebeneinander statt untereinander. */
+.gradreihe {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.gradreihe .taste {
+  min-height: 32px;
+  padding: 0 4px;
+  font-size: 12px;
+  gap: 3px;
+}
+
+.gradreihe .sterne {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.endlostaste {
+  margin-top: 4px;
+  width: 100%;
 }
 
 .fortschritt {
@@ -362,12 +395,55 @@ body {
   position: absolute;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 7px;
-  min-width: 200px;
-  max-width: min(320px, calc(100vw - 16px));
-  font-size: 13px;
+  gap: 4px;
+  padding: 6px;
+  min-width: 196px;
+  max-width: min(300px, calc(100vw - 16px));
+  font-size: 12px;
+  line-height: 1.25;
   z-index: 5;
+}
+
+.schweber .taste.klein {
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.schweber .reihe {
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.schweber .reihe > .taste {
+  flex: 1;
+  white-space: nowrap;
+}
+
+/* Werte in einer Zeile statt als Liste: spart auf dem Handy viel Hoehe. */
+.kennwerte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  color: var(--text-schwach);
+  font-variant-numeric: tabular-nums;
+}
+
+.kennwerte b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.zielreihe {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+}
+
+.zielreihe .taste {
+  min-height: 28px;
+  padding: 0 2px;
+  font-size: 11px;
 }
 
 .schweber .kopf {
@@ -375,6 +451,8 @@ body {
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
+  border-bottom: 1px solid var(--rand);
+  padding-bottom: 4px;
 }
 
 .schweber .kopf .name {
@@ -464,7 +542,7 @@ body {
 
 /* --- Schmale Bildschirme ------------------------------------------------- */
 
-@media (max-height: 420px) {
+@media (max-height: 460px) {
   .leiste {
     padding-top: calc(4px + var(--sicher-oben));
     padding-bottom: 4px;
@@ -472,9 +550,29 @@ body {
   .fussleiste {
     padding-bottom: calc(6px + var(--sicher-unten));
   }
+  /* Auf niedrigen Bildschirmen zaehlt jede Zeile. Der Text wird kleiner,
+     damit mehr auf einen Blick passt, statt dass man staendig scrollt. */
   .dialog {
     padding: 12px;
-    gap: 10px;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .dialog h1 {
+    font-size: 18px;
+  }
+  .dialog h2 {
+    font-size: 13px;
+  }
+  .eintrag {
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+  .raster {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .taste {
+    min-height: 38px;
+    padding: 0 12px;
   }
 }
 

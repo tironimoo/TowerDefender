@@ -81,38 +81,43 @@ export function levelAuswahl(
     if (level === undefined) return;
     const offen = levelOffen(stand, content, index);
 
-    const grade = el('div', { class: 'reihe' });
+    const grade = el('div', { class: 'gradreihe' });
+    let endlosTaste: HTMLElement | null = null;
     if (offen) {
       for (const grad of ['normal', 'hart', 'albtraum'] as const) {
         const frei = schwierigkeitOffen(stand, levelId, grad);
-        const knopf = taste(
-          `${SCHWIERIGKEIT_NAME[grad].slice(0, 1)} ${sterne(sterneFuer(stand, levelId, grad))}`,
-          () => rueckrufe.beiLevel(levelId, grad, false),
-          'klein',
-        );
+        const knopf = el('button', { class: 'taste klein', type: 'button' }, [
+          el('span', {}, [SCHWIERIGKEIT_NAME[grad].slice(0, 1)]),
+          el('span', { class: 'sterne' }, [sterne(sterneFuer(stand, levelId, grad))]),
+        ]);
         knopf.disabled = !frei;
-        knopf.title = SCHWIERIGKEIT_NAME[grad];
+        knopf.title = frei
+          ? SCHWIERIGKEIT_NAME[grad]
+          : grad === 'hart'
+            ? 'Erst auf Normal schaffen'
+            : 'Erst auf Hart alle drei Sterne holen';
+        knopf.addEventListener('click', () => rueckrufe.beiLevel(levelId, grad, false));
         grade.append(knopf);
       }
       if (endlosFrei) {
         const bestwert = stand.endlos[levelId] ?? 0;
-        const knopf = taste(
-          bestwert > 0 ? `Endlos · ${bestwert}` : 'Endlos',
+        endlosTaste = taste(
+          bestwert > 0 ? `Endlos · beste Welle ${bestwert}` : 'Endlos',
           () => rueckrufe.beiLevel(levelId, 'normal', true),
-          'klein',
+          'klein endlostaste',
         );
-        grade.append(knopf);
       }
     }
 
     liste.append(
       el('div', { class: `eintrag region-${level.region}`, ...(offen ? {} : { disabled: true }) }, [
-        el('span', { class: 'titel' }, [`${index + 1}. ${level.name}`]),
-        el('div', { class: 'zeile' }, [
-          el('span', {}, [REGION_NAME[level.region]]),
-          el('span', {}, [offen ? `${level.waves.length} Wellen` : 'gesperrt']),
+        el('div', { class: 'titelzeile' }, [
+          el('span', { class: 'titel' }, [`${index + 1}. ${level.name}`]),
+          el('span', { class: 'schwach' }, [offen ? `${level.waves.length} Wellen` : 'gesperrt']),
         ]),
+        el('div', { class: 'zeile' }, [el('span', {}, [REGION_NAME[level.region]])]),
         offen ? grade : el('div', { class: 'zeile schwach' }, ['Erst die Karte davor schaffen.']),
+        endlosTaste,
       ]),
     );
   });
@@ -331,14 +336,21 @@ export function forschungsBaum(
           disabled: gekauft || !verfuegbar || !bezahlbar,
         },
         [
-          el('span', { class: 'titel' }, [knoten.name]),
-          el('div', { class: 'zeile' }, [el('span', {}, [knoten.beschreibung])]),
-          el('div', { class: 'zeile' }, [
-            el('span', {}, [
-              gekauft ? 'erforscht' : verfuegbar ? 'verfuegbar' : 'Voraussetzung fehlt',
-            ]),
-            el('span', { class: 'gold' }, [gekauft ? '' : `${knoten.kosten} Splitter`]),
+          el('div', { class: 'titelzeile' }, [
+            el('span', { class: 'titel' }, [knoten.name]),
+            el('span', { class: 'gold zahl' }, [gekauft ? 'fertig' : String(knoten.kosten)]),
           ]),
+          el('div', { class: 'zeile' }, [el('span', {}, [knoten.beschreibung])]),
+          !gekauft &&
+            el('div', { class: 'zeile' }, [
+              el('span', {}, [
+                verfuegbar
+                  ? bezahlbar
+                    ? 'verfuegbar'
+                    : 'zu wenig Splitter'
+                  : 'Voraussetzung fehlt',
+              ]),
+            ]),
         ],
       );
       if (!gekauft && verfuegbar && bezahlbar) {

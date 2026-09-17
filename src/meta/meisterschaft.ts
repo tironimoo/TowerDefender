@@ -16,10 +16,16 @@ export const HOECHSTSTUFE = 20;
 /** Auf diesen Stufen steht eine Wahl an. */
 export const WAHLSTUFEN: readonly number[] = [5, 10, 15];
 
-/** Erfahrung, die bis zu einer Stufe insgesamt noetig ist. */
+/**
+ * Erfahrung, die bis zu einer Stufe insgesamt noetig ist.
+ *
+ * Die Kurve ist bewusst steil. Die erste Wahl auf Stufe fuenf kommt nach
+ * wenigen Partien, die Hoechststufe erst nach vielen. Sonst waere die
+ * Meisterschaft nach einem Abend erledigt.
+ */
 export function erfahrungFuerStufe(stufe: number): number {
   if (stufe <= 1) return 0;
-  return Math.round(400 * Math.pow(stufe, 2.2));
+  return Math.round(900 * Math.pow(stufe, 2.5));
 }
 
 export function stufeAusErfahrung(erfahrung: number): number {

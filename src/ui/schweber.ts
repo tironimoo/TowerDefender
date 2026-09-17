@@ -17,13 +17,15 @@ export interface SchweberRueckrufe {
   readonly beiZiel: (towerId: number, policy: TargetPolicy) => void;
 }
 
-const ZIELE: readonly { readonly id: TargetPolicy; readonly name: string }[] = [
-  { id: 'erster', name: 'Erster' },
-  { id: 'letzter', name: 'Letzter' },
-  { id: 'staerkster', name: 'Staerkster' },
-  { id: 'schwaechster', name: 'Schwaechster' },
-  { id: 'naechster', name: 'Naechster' },
-];
+/** Kurze Beschriftungen: auf dem Handy zaehlt jede Zeile Hoehe. */
+const ZIELE: readonly { readonly id: TargetPolicy; readonly kurz: string; readonly name: string }[] =
+  [
+    { id: 'erster', kurz: 'Erst', name: 'Erster auf dem Weg' },
+    { id: 'letzter', kurz: 'Letzt', name: 'Letzter auf dem Weg' },
+    { id: 'staerkster', kurz: 'Stark', name: 'Staerkster' },
+    { id: 'schwaechster', kurz: 'Schwach', name: 'Schwaechster' },
+    { id: 'naechster', kurz: 'Nah', name: 'Naechster' },
+  ];
 
 export class Schweber {
   readonly element: HTMLElement;
@@ -128,21 +130,21 @@ export class Schweber {
       ]),
     );
 
-    const liste = el('dl', { class: 'werteliste' });
-    const zeile = (marke: string, inhalt: string): void => {
-      liste.append(el('dt', {}, [marke]), el('dd', {}, [inhalt]));
+    const kennwerte = el('div', { class: 'kennwerte' });
+    const kennwert = (marke: string, inhalt: string): void => {
+      kennwerte.append(el('span', {}, [`${marke} `, el('b', {}, [inhalt])]));
     };
-    if (tower.damage > 0) zeile('Schaden', formatiere(tower.damage));
-    if (tower.fireRate > 0) zeile('Schuss/s', tower.fireRate.toFixed(2));
-    zeile('Reichweite', tower.range.toFixed(1));
-    if (tower.splashRadius > 0) zeile('Flaeche', tower.splashRadius.toFixed(1));
-    if (tower.armorPierce > 0) zeile('Durchschlag', `${Math.round(tower.armorPierce * 100)} %`);
+    if (tower.damage > 0) kennwert('Schaden', formatiere(tower.damage));
+    if (tower.fireRate > 0) kennwert('Rate', `${tower.fireRate.toFixed(1)}/s`);
+    kennwert('Weite', tower.range.toFixed(1));
+    if (tower.splashRadius > 0) kennwert('Flaeche', tower.splashRadius.toFixed(1));
+    if (tower.armorPierce > 0) kennwert('Durchschlag', `${Math.round(tower.armorPierce * 100)}%`);
     if (tower.onHit.slowFactor > 0) {
-      zeile('Verlangsamt', `${Math.round(tower.onHit.slowFactor * 100)} %`);
+      kennwert('Frost', `${Math.round(tower.onHit.slowFactor * 100)}%`);
     }
-    if (tower.onHit.burnDps > 0) zeile('Brand', `${formatiere(tower.onHit.burnDps)}/s`);
-    zeile('Angerichtet', formatiere(tower.damageDealt));
-    this.element.append(liste);
+    if (tower.onHit.burnDps > 0) kennwert('Brand', `${formatiere(tower.onHit.burnDps)}/s`);
+    if (tower.damageDealt > 0) kennwert('Gesamt', formatiere(tower.damageDealt));
+    this.element.append(kennwerte);
 
     const kosten = ausbauKosten(world, def, tower.level);
     const reihe = el('div', { class: 'reihe' });
@@ -150,7 +152,7 @@ export class Schweber {
       reihe.append(el('span', { class: 'schwach' }, ['Voll ausgebaut']));
     } else {
       const knopf = taste(
-        `Ausbauen · ${kosten} G`,
+        `Ausbauen ${kosten} G`,
         () => this.rueckrufe.beiAusbauen(tower.id),
         'klein stark',
       );
@@ -159,7 +161,7 @@ export class Schweber {
     }
     reihe.append(
       taste(
-        `Verkaufen · ${Math.floor(tower.invested * world.boni.verkaufswert)} G`,
+        `Verkauf ${Math.floor(tower.invested * world.boni.verkaufswert)} G`,
         () => this.rueckrufe.beiVerkaufen(tower.id),
         'klein gefahr',
       ),
@@ -167,16 +169,17 @@ export class Schweber {
     this.element.append(reihe);
 
     if (def.fireRate > 0) {
-      const ziele = el('div', { class: 'reihe' });
+      const ziele = el('div', { class: 'zielreihe' });
       for (const eintrag of ZIELE) {
         const knopf = taste(
-          eintrag.name,
+          eintrag.kurz,
           () => this.rueckrufe.beiZiel(tower.id, eintrag.id),
           `klein ${tower.policy === eintrag.id ? 'aktiv' : ''}`.trim(),
         );
+        knopf.title = eintrag.name;
         ziele.append(knopf);
       }
-      this.element.append(el('div', { class: 'zeile schwach' }, ['Zielpriorität']), ziele);
+      this.element.append(ziele);
     }
   }
 }

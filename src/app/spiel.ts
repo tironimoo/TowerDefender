@@ -85,6 +85,21 @@ export class Spiel {
       this.partie?.passeGroesseAn(this.app.screen.width, this.app.screen.height);
     });
 
+    // Kleiner Zugang fuer die Vorschauwerkzeuge in tools/preview. Er liest
+    // nur, veraendert nichts und stoert das Spiel nicht.
+    (window as unknown as Record<string, unknown>)['__td'] = {
+      bauplaetze: () => this.partie?.bauplatzPunkte() ?? [],
+      zustand: () => ({
+        ansicht: this.ansicht,
+        gold: this.partie?.world.gold ?? 0,
+        leben: this.partie?.world.lives ?? 0,
+        welle: this.partie?.world.wavesStarted ?? 0,
+        abgeraeumt: this.partie?.world.wavesCleared ?? 0,
+        gegner: this.partie?.world.enemies.activeCount ?? 0,
+        status: this.partie?.world.status ?? 'kein',
+      }),
+    };
+
     this.zeigeHauptmenue();
 
     this.letzteZeit = performance.now();
@@ -347,7 +362,22 @@ export class Spiel {
         beiLoeschen: () => {
           void loesche().then(() => {
             this.stand = neuerStand();
-            this.zeigeHauptmenue();
+            // Kleiner Zugang fuer die Vorschauwerkzeuge in tools/preview. Er liest
+    // nur, veraendert nichts und stoert das Spiel nicht.
+    (window as unknown as Record<string, unknown>)['__td'] = {
+      bauplaetze: () => this.partie?.bauplatzPunkte() ?? [],
+      zustand: () => ({
+        ansicht: this.ansicht,
+        gold: this.partie?.world.gold ?? 0,
+        leben: this.partie?.world.lives ?? 0,
+        welle: this.partie?.world.wavesStarted ?? 0,
+        abgeraeumt: this.partie?.world.wavesCleared ?? 0,
+        gegner: this.partie?.world.enemies.activeCount ?? 0,
+        status: this.partie?.world.status ?? 'kein',
+      }),
+    };
+
+    this.zeigeHauptmenue();
           });
         },
         beiZurueck: () => this.zeigeHauptmenue(),

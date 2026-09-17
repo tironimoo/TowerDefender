@@ -6,7 +6,8 @@
  * Geraet kann. Siehe docs/03-architektur.md, Abschnitt Zeit.
  */
 
-import { Application, Container } from 'pixi.js';
+import type { Application} from 'pixi.js';
+import { Container } from 'pixi.js';
 import type { Boni, Content, Difficulty, LevelDef, World } from '@sim/index';
 import { applyCommand, createWorld, drainEvents, step, TICKS_PER_SECOND } from '@sim/index';
 import { atlas } from '@render/atlas';
@@ -131,6 +132,25 @@ export class Partie {
     loadout: readonly string[],
   ): Promise<void> {
     await atlas.lade(blaetterFuer(content, level, loadout));
+  }
+
+  /**
+   * Bildschirmpositionen aller Bauplaetze.
+   * Wird von den Vorschauwerkzeugen genutzt, um verlaesslich zu bauen, statt
+   * auf Pixel zu raten. Siehe tools/preview.
+   */
+  bauplatzPunkte(): { x: number; y: number; belegt: boolean; aufWeg: boolean }[] {
+    return this.world.level.buildSlots.map((slot, index) => {
+      zuBildschirm(slot.x, slot.y, this.hilfsPunkt);
+      const welt = { x: this.hilfsPunkt.x, y: this.hilfsPunkt.y };
+      this.kamera.zumBildschirm(welt.x, welt.y, this.hilfsPunkt);
+      return {
+        x: this.hilfsPunkt.x,
+        y: this.hilfsPunkt.y,
+        belegt: this.world.occupiedSlots.has(index),
+        aufWeg: slot.aufWeg,
+      };
+    });
   }
 
   zerstoere(): void {
