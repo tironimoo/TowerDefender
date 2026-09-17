@@ -1,0 +1,28 @@
+# Grafik- und Tonquellen liegen lokal, nicht im Repo
+assets/
+!assets/manifest.example.json
+
+# Abhängigkeiten und Bauergebnisse
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+
+# Erzeugte Sprite-Blätter
+public/atlas/
+
+# Capacitor
+android/
+ios/
+
+# Werkzeuge und System
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
