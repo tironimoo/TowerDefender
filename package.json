@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sim": "tsx tools/sim-runner/run.ts",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "assets": "node tools/voxel-render/build.mjs"
   },
   "dependencies": {
     "pixi.js": "^8.6.6"
