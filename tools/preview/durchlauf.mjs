@@ -115,6 +115,7 @@ await page.getByRole('button', { name: /Welle starten/ }).click();
 await page.waitForTimeout(300);
 await page.getByRole('button', { name: '3x' }).click();
 
+let bossBild = false;
 // Nachbauen, und die naechste Welle nur vorziehen, wenn Luft ist.
 for (let runde = 0; runde < 120; runde++) {
   await page.waitForTimeout(1200);
@@ -129,6 +130,11 @@ for (let runde = 0; runde < 120; runde++) {
     }
   }
   if (runde === 10) await page.screenshot({ path: `${ziel}/b-gefecht.png` });
+  if (zustand.boss && !bossBild) {
+    bossBild = true;
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: `${ziel}/b2-boss.png` });
+  }
 }
 
 await page.waitForTimeout(1200);

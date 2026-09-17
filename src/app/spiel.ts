@@ -103,6 +103,7 @@ export class Spiel {
         welle: this.partie?.world.wavesStarted ?? 0,
         abgeraeumt: this.partie?.world.wavesCleared ?? 0,
         gegner: this.partie?.world.enemies.activeCount ?? 0,
+        boss: this.bossAufDerKarte(),
         status: this.partie?.world.status ?? 'kein',
       }),
     };
@@ -416,6 +417,7 @@ export class Spiel {
         welle: this.partie?.world.wavesStarted ?? 0,
         abgeraeumt: this.partie?.world.wavesCleared ?? 0,
         gegner: this.partie?.world.enemies.activeCount ?? 0,
+        boss: this.bossAufDerKarte(),
         status: this.partie?.world.status ?? 'kein',
       }),
     };
@@ -426,6 +428,17 @@ export class Spiel {
         beiZurueck: () => this.zeigeHauptmenue(),
       }),
     );
+  }
+
+  /** Ob gerade ein Boss unterwegs ist. Nur fuer die Vorschauwerkzeuge. */
+  private bossAufDerKarte(): boolean {
+    const world = this.partie?.world;
+    if (world === undefined) return false;
+    for (const gegner of world.enemies.items) {
+      if (!gegner.active) continue;
+      if (world.content.enemies.get(gegner.defId)?.boss != null) return true;
+    }
+    return false;
   }
 
   /** Faerbt den Hintergrund passend zur Region. */
