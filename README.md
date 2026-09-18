@@ -30,16 +30,43 @@ Handy funktioniert dieselbe Adresse im WLAN.
 | `npm run verlauf` | Zeigt eine Partie Welle für Welle |
 | `npm run sim` | Rechnet eine Karte durch und zeigt Schadensanteile |
 | `npm run doku` | Erzeugt die Wertetabellen in `docs/` |
+| `npm run icons` | Erzeugt App-Symbol und Startbild |
 | `npm run app:sync` | Baut und überträgt in die App-Hülle |
 
 ## Als App auf das Gerät
 
+### Fertige APK herunterladen
+
+Die aktuelle Testfassung liegt immer unter derselben Adresse:
+
+**<https://github.com/tironimoo/TowerDefender/releases/tag/apk-latest>**
+
+Auf dem Handy herunterladen, antippen und die Installation aus unbekannter
+Quelle einmalig erlauben. Die APK ist mit dem Standardschlüssel von Android
+signiert, ein neuer Bau lässt sich also über den alten drüber installieren,
+ohne den Spielstand zu verlieren.
+
+Gebaut wird sie von `.github/workflows/apk.yml`. Der Auftrag läuft bei jedem
+Push auf den Entwicklungszweig und lässt sich unter Actions auch von Hand
+starten.
+
+### Selbst bauen
+
 ```bash
 npm run build
-npx cap add android      # einmalig, braucht Android Studio
-npx cap add ios          # einmalig, braucht Xcode
-npm run app:android      # oder app:ios
+npx cap sync android
+cd android && ./gradlew assembleDebug
+# Ergebnis: android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Dafür brauchst du ein Android-SDK. Mit Android Studio geht auch
+`npm run app:android`. Für iOS einmalig `npx cap add ios`, dann
+`npm run app:ios`.
+
+Das Android-Projekt liegt im Repo. Dort sind Querformat, Vollbild ohne
+Systemleisten, die Vibrationsberechtigung und das App-Symbol eingestellt. Das
+Symbol erzeugt `npm run icons` mit demselben Voxel-Renderer wie die
+Spielgrafik.
 
 ## Aufbau
 
