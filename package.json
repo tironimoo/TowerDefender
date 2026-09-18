@@ -19,7 +19,8 @@
     "app:sync": "npm run build && npx cap sync",
     "app:android": "npm run app:sync && npx cap open android",
     "app:ios": "npm run app:sync && npx cap open ios",
-    "doku": "tsx tools/doku/startwerte.ts"
+    "doku": "tsx tools/doku/startwerte.ts",
+    "icons": "node tools/icons/build.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",

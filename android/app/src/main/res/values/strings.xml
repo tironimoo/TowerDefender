@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TowerDefender</string>
+    <string name="title_activity_main">TowerDefender</string>
+    <string name="package_name">de.towerdefender.spiel</string>
+    <string name="custom_url_scheme">de.towerdefender.spiel</string>
+</resources>

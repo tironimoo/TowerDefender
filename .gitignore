@@ -14,7 +14,8 @@ coverage/
 # sich das Spiel nach einem frischen Klonen nicht starten.
 
 # Capacitor
-android/
+# android/ gehoert ins Repo: dort stehen Symbol, Startbild, Vollbildmodus und
+# die Sperre auf Querformat. Was Capacitor erzeugt, ignoriert android/.gitignore.
 ios/
 
 # Werkzeuge und System

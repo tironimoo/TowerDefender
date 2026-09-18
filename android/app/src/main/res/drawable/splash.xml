@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Farbflaeche mit mittigem Motiv. Ein einzelnes Bitmap als Fensterhintergrund
+  wuerde im Querformat verzerrt.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/hintergrund" />
+    <item>
+        <bitmap
+            android:src="@drawable/startbild"
+            android:gravity="center" />
+    </item>
+</layer-list>

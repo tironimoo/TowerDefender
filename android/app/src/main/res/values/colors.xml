@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dieselben Werte wie in src/ui/stil.css. -->
+    <color name="colorPrimary">#1d2431</color>
+    <color name="colorPrimaryDark">#0b0e14</color>
+    <color name="colorAccent">#7fd4ff</color>
+    <color name="hintergrund">#0b0e14</color>
+</resources>
