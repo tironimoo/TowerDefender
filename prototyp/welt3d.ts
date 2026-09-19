@@ -9,10 +9,10 @@
  */
 
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { LevelDef, Region, TileKind } from '@sim/index';
 import type { ModellBau } from './meshbau';
-import { VOXEL } from './meshbau';
+import { kantenbruch, verschmelze, VOXEL } from './meshbau';
 
 /** Farben je Region. Bewusst wenige und eng beieinander. */
 interface RegionFarben {
@@ -74,6 +74,14 @@ const HOEHE: Readonly<Record<TileKind, number>> = {
 
 const farbe = new THREE.Color();
 
+/** Kachel oder Platte, mit demselben Kantenbruch wie die Modelle. */
+function kastenMitKante(b: number, h: number, t: number): THREE.BufferGeometry {
+  const radius = Math.min(b, h, t) * kantenbruch;
+  return radius > 0.0005
+    ? new RoundedBoxGeometry(b, h, t, 1, radius)
+    : new THREE.BoxGeometry(b, h, t);
+}
+
 function gefaerbt(geometrie: THREE.BufferGeometry, ton: string, streuung: number): THREE.BufferGeometry {
   farbe.set(ton);
   const f = 1 + (Math.random() - 0.5) * streuung;
@@ -121,7 +129,7 @@ export function baueInsel(
               ? farben.sockel
               : (farben.boden[(tx + ty) % 2] ?? farben.boden[0]);
 
-      const kachel = new THREE.BoxGeometry(1, h, 1);
+      const kachel = kastenMitKante(1, h, 1);
       kachel.translate(tx + 0.5, h / 2, ty + 0.5);
       if (art === 'fluessig' && farben.fluessigLeuchtet > 0.5) {
         leuchtende.push(gefaerbt(kachel, ton, 0.1));
@@ -134,7 +142,7 @@ export function baueInsel(
   // Wegkacheln ausserhalb der Karte: Zugang und Ausgang.
   for (const feld of level.randWeg) {
     if (!wegFelder.has(`${feld.x},${feld.y}`)) continue;
-    const kachel = new THREE.BoxGeometry(1, HOEHE.weg, 1);
+    const kachel = kastenMitKante(1, HOEHE.weg, 1);
     kachel.translate(feld.x + 0.5, HOEHE.weg / 2, feld.y + 0.5);
     feste.push(gefaerbt(kachel, farben.weg, 0.07));
   }
@@ -148,10 +156,11 @@ export function baueInsel(
     4,
     1,
   );
-  sockel.rotateY(Math.PI / 4);
-  sockel.scale(level.breite / Math.max(level.breite, level.hoehe), 1, level.hoehe / Math.max(level.breite, level.hoehe));
-  sockel.translate(level.breite / 2, -0.8, level.hoehe / 2);
-  feste.push(gefaerbt(sockel, farben.sockel, 0.05));
+  const sockelFlach = sockel;
+  sockelFlach.rotateY(Math.PI / 4);
+  sockelFlach.scale(level.breite / Math.max(level.breite, level.hoehe), 1, level.hoehe / Math.max(level.breite, level.hoehe));
+  sockelFlach.translate(level.breite / 2, -0.8, level.hoehe / 2);
+  feste.push(gefaerbt(sockelFlach, farben.sockel, 0.05));
 
   // --- Requisiten ---------------------------------------------------------
   for (const prop of level.props) {
@@ -174,19 +183,19 @@ export function baueInsel(
   // --- Bauplaetze ---------------------------------------------------------
   for (const slot of level.buildSlots) {
     if (slot.aufWeg) continue;
-    const platte = new THREE.BoxGeometry(0.74, 0.06, 0.74);
+    const platte = kastenMitKante(0.74, 0.06, 0.74);
     platte.translate(slot.x, HOEHE.boden + 0.03, slot.y);
     feste.push(gefaerbt(platte, '#8b9098', 0.05));
   }
 
   if (feste.length > 0) {
-    const netz = new THREE.Mesh(mergeGeometries(feste, false), materialien.fest);
+    const netz = new THREE.Mesh(verschmelze('Insel fest', feste), materialien.fest);
     netz.castShadow = true;
     netz.receiveShadow = true;
     gruppe.add(netz);
   }
   if (leuchtende.length > 0) {
-    gruppe.add(new THREE.Mesh(mergeGeometries(leuchtende, false), materialien.leuchtend));
+    gruppe.add(new THREE.Mesh(verschmelze('Insel leuchtend', leuchtende), materialien.leuchtend));
   }
   for (const g of [...feste, ...leuchtende]) g.dispose();
 

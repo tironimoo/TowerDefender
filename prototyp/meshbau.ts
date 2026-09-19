@@ -14,6 +14,8 @@
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { baueHuelle } from './glatt';
 
 /** Eine Voxeleinheit in Weltmass. Sechzehn Voxel sind eine Kachel. */
 export const VOXEL = 1 / 16;
@@ -74,9 +76,42 @@ function streuung(x: number, y: number, z: number, staerke: number): number {
   return 1 + (n - Math.floor(n) - 0.5) * staerke;
 }
 
+/**
+ * Wie stark die Kanten gebrochen werden, als Anteil der kuerzesten Seite.
+ *
+ * Null ergibt den Klotzlook. Schon ein Viertel nimmt ihn weg, ohne die Form
+ * zu veraendern: die Silhouette bleibt, aber die Kante faengt Licht. Genau
+ * daran erkennt das Auge "geschliffen" statt "gewuerfelt".
+ */
+export let kantenbruch = 0;
+export function setzeKantenbruch(wert: number): void {
+  kantenbruch = wert;
+}
+
+/**
+ * Wie die Kaesten zu Koerpern werden.
+ *
+ *  - klotz: ein Quader je Kasten, gegebenenfalls mit gebrochener Kante.
+ *  - glatt: eine gemeinsame Huelle ueber alle Kaesten eines Teils.
+ *
+ * Die Modelldaten sind in beiden Faellen dieselben.
+ */
+export type Bauform = 'klotz' | 'glatt';
+export let bauform: Bauform = 'klotz';
+export function setzeBauform(wert: Bauform): void {
+  bauform = wert;
+}
+
 function kastenGeometrie(kasten: RohKasten): THREE.BufferGeometry {
   const [sx, sy, sz] = kasten.size;
-  const geometrie = new THREE.BoxGeometry(sx * VOXEL, sy * VOXEL, sz * VOXEL);
+  const b = sx * VOXEL;
+  const h = sy * VOXEL;
+  const t = sz * VOXEL;
+  const radius = Math.min(b, h, t) * kantenbruch;
+  const geometrie: THREE.BufferGeometry =
+    radius > 0.0005
+      ? new RoundedBoxGeometry(b, h, t, 1, radius)
+      : new THREE.BoxGeometry(b, h, t);
   geometrie.translate(kasten.pos[0] * VOXEL, kasten.pos[1] * VOXEL, kasten.pos[2] * VOXEL);
 
   farbe.set(kasten.color);
@@ -92,10 +127,45 @@ function kastenGeometrie(kasten: RohKasten): THREE.BufferGeometry {
   return geometrie;
 }
 
+/**
+ * Verschmelzen mit Fehlermeldung statt null.
+ *
+ * mergeGeometries gibt null zurueck, wenn die Eingaben nicht zusammenpassen,
+ * und schreibt nur eine Konsolenzeile. Wandert das null in ein THREE.Mesh,
+ * stirbt der Renderer viel spaeter an einer Stelle, die nichts damit zu tun
+ * hat. Deshalb faellt es hier auf, mit den Angaben, die den Fall erklaeren.
+ */
+export function verschmelze(
+  was: string,
+  geometrien: readonly THREE.BufferGeometry[],
+): THREE.BufferGeometry {
+  // Ohne Texturen braucht niemand die uv-Koordinaten, und ohne sie passen
+  // Quader und geschliffene Huellen zusammen. mergeGeometries verlangt
+  // ausserdem, dass entweder alle oder keine Geometrie einen Index hat.
+  for (const g of geometrien) g.deleteAttribute('uv');
+  const alleIndiziert = geometrien.every((g) => g.index !== null);
+  const gleich = alleIndiziert
+    ? (geometrien as THREE.BufferGeometry[])
+    : geometrien.map((g) => (g.index === null ? g : g.toNonIndexed()));
+  const gesamt = mergeGeometries(gleich, false);
+  if (gesamt === null) {
+    const arten = new Set(
+      geometrien.map(
+        (g) => `${g.index === null ? 'ohne' : 'mit'} Index [${Object.keys(g.attributes).sort().join(',')}]`,
+      ),
+    );
+    throw new Error(
+      `${was}: ${geometrien.length} Geometrien passen nicht zusammen: ${[...arten].join(' / ')}`,
+    );
+  }
+  return gesamt;
+}
+
 function zusammen(kaesten: readonly RohKasten[]): THREE.BufferGeometry | null {
   if (kaesten.length === 0) return null;
+  if (bauform === 'glatt') return baueHuelle(kaesten);
   const teile = kaesten.map(kastenGeometrie);
-  const gesamt = mergeGeometries(teile, false);
+  const gesamt = verschmelze('Modellteil', teile);
   for (const t of teile) t.dispose();
   return gesamt;
 }

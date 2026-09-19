@@ -21,9 +21,9 @@ export const TiltShiftShader = {
     /** Hoehe der scharfen Ebene, 0 unten bis 1 oben. */
     mitte: { value: 0.5 },
     /** Halbe Hoehe des scharfen Bandes. */
-    breite: { value: 0.22 },
+    breite: { value: 0.16 },
     /** Staerke der Unschaerfe in Bildpunkten. */
-    staerke: { value: 3.0 },
+    staerke: { value: 11.0 },
     /** 0 waagerecht, 1 senkrecht. Zwei Durchgaenge ergeben eine runde Unschaerfe. */
     senkrecht: { value: 0 },
   },

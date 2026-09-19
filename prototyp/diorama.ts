@@ -22,7 +22,8 @@ import type { Enemy, World } from '@sim/index';
 import { applyCommand, createWorld, step, TICKS_PER_SECOND } from '@sim/index';
 
 import type { ModellBau, RohModell } from './meshbau';
-import { alsGruppe, baueModell, bewege, VOXEL } from './meshbau';
+import { alsGruppe, bauform, baueModell, bewege, setzeBauform, setzeKantenbruch, VOXEL } from './meshbau';
+import { setzeVerschmelzung } from './glatt';
 import { baueInsel, HOEHE, REGIONEN } from './welt3d';
 import { TiltShiftShader } from './tiltshift';
 
@@ -95,7 +96,14 @@ const gegenlicht = new THREE.DirectionalLight(farben.fuellicht, 1.1);
 gegenlicht.position.set(16, 9, 14);
 szene.add(gegenlicht);
 
-const materialFest = new THREE.MeshLambertMaterial({ vertexColors: true });
+// MeshStandardMaterial statt Lambert: erst ein Glanzlicht macht aus einer
+// Flaeche ein Material. Matt und leicht rau - poliert wuerde nach Plastik
+// aussehen, und darum geht es hier gerade nicht.
+const materialFest = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.72,
+  metalness: 0.06,
+});
 const materialLeuchtend = new THREE.MeshBasicMaterial({ vertexColors: true });
 const materialien = { fest: materialFest, leuchtend: materialLeuchtend };
 
@@ -104,8 +112,10 @@ const materialien = { fest: materialFest, leuchtend: materialLeuchtend };
 // im Untergrund, und ein Gegner, den man nicht sieht, ist ein Fehler im
 // Spiel und nicht im Bild.
 const materialienGegner = {
-  fest: new THREE.MeshLambertMaterial({
+  fest: new THREE.MeshStandardMaterial({
     vertexColors: true,
+    roughness: 0.6,
+    metalness: 0.05,
     emissive: new THREE.Color(0x2a3a4a),
     emissiveIntensity: 0.9,
   }),
@@ -113,6 +123,17 @@ const materialienGegner = {
 };
 
 // --- Modelle laden ---------------------------------------------------------
+// Drei Lesarten derselben Modelldaten, zum Vergleichen nebeneinander:
+//   ?form=klotz&kante=0    der reine Wuerfellook
+//   ?form=klotz&kante=0.3  Quader mit gebrochener Kante
+//   ?form=glatt            eine geschliffene Huelle je Koerperteil
+const parameter = new URLSearchParams(location.search);
+const kante = Number(parameter.get('kante') ?? '0.28');
+setzeKantenbruch(Number.isFinite(kante) ? Math.max(0, Math.min(0.49, kante)) : 0.28);
+setzeBauform(parameter.get('form') === 'klotz' ? 'klotz' : 'glatt');
+const weichheit = Number(parameter.get('weich') ?? '0.5');
+if (Number.isFinite(weichheit)) setzeVerschmelzung(Math.max(0, Math.min(3, weichheit)));
+
 const antwort = await fetch(new URL('../modelle/modelle.json', import.meta.url));
 if (!antwort.ok) {
   // Ohne Modelle wuerde hier eine leere Insel stehen, ohne dass jemand weiss,
@@ -225,6 +246,8 @@ let stufe: Stufe = STUFEN[0] as Stufe;
 const komponist = new EffectComposer(renderer);
 const renderDurchgang = new RenderPass(szene, kamera);
 const bluehen = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.65, 0.55, 0.22);
+// Drei Pixel Unschaerfe sieht niemand. Der Unterschied zwischen "Hoch" und
+// "Mittel" war deshalb unsichtbar - und damit war die Stufe wertlos.
 const tiltWaagerecht = new ShaderPass(TiltShiftShader);
 const tiltSenkrecht = new ShaderPass(TiltShiftShader);
 const senkrechtWert = tiltSenkrecht.uniforms['senkrecht'];
@@ -319,6 +342,14 @@ renderer.domElement.addEventListener(
 document.getElementById('stufe')?.addEventListener('click', () => {
   const index = (STUFEN.indexOf(stufe) + 1) % STUFEN.length;
   setzeStufe(STUFEN[index] as Stufe);
+});
+// Die Bauform steckt in den Modellen, die beim Laden entstehen. Statt alles
+// im Betrieb neu aufzubauen, laedt die Taste die Seite mit der anderen Form -
+// im Prototyp der ehrlichere Weg, weil nichts halb umgestellt sein kann.
+document.getElementById('form')?.addEventListener('click', () => {
+  const naechste = new URLSearchParams(location.search);
+  naechste.set('form', bauform === 'glatt' ? 'klotz' : 'glatt');
+  location.search = naechste.toString();
 });
 let drehenAn = true;
 document.getElementById('drehen')?.addEventListener('click', () => {
