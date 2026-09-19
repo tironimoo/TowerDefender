@@ -28,7 +28,11 @@ export function startNextWave(world: World, bonusSeconds: number): void {
 
   const waveNumber = world.wavesStarted + 1;
   const def = waveDefFor(world, waveNumber);
-  const grundFaktor = world.difficulty.healthFactor * (world.mutator?.healthFactor ?? 1);
+  // Die Staerke der Karte gehoert in den Grundfaktor und nicht in die
+  // Wellensteigerung: sie soll die ganze Karte gleichmaessig anheben oder
+  // senken, Bosse eingeschlossen.
+  const grundFaktor =
+    world.level.staerke * world.difficulty.healthFactor * (world.mutator?.healthFactor ?? 1);
   const healthFactor = waveHealthFactor(waveNumber) * grundFaktor;
 
   for (const group of def.groups) {

@@ -47,6 +47,11 @@ jobs:
         run: npm run check
 
       - name: Weboberflaeche bauen
+        # Die Fassung steht spaeter im Hauptmenue. Sie traegt die Herkunft mit,
+        # weil App und Webfassung getrennt gezaehlt werden und sonst zwei
+        # verschiedene Staende dieselbe Nummer truegen.
+        env:
+          VITE_FASSUNG: App 1.0.${{ github.run_number }}
         run: npm run build
 
       - name: Java einrichten

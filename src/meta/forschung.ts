@@ -62,14 +62,21 @@ function knoten(
 
 export const FORSCHUNG: readonly ForschungsKnoten[] = [
   // --- Arsenal: die acht zusaetzlichen Tuerme ------------------------------
-  knoten('arsenal-spaehturm', 'arsenal', 'Spaehturm', 'Deckt unsichtbare Gegner auf und erhoeht die Reichweite der Nachbarn.', 25, [], { turm: 'spaehturm' }),
-  knoten('arsenal-ambossfalle', 'arsenal', 'Ambossfalle', 'Eine Falle auf dem Weg. Schlaegt hart zu und laedt lange.', 35, [], { turm: 'ambossfalle' }),
-  knoten('arsenal-balliste', 'arsenal', 'Balliste', 'Sehr grosse Reichweite, durchschlaegt die halbe Panzerung.', 55, ['arsenal-spaehturm'], { turm: 'balliste' }),
-  knoten('arsenal-kolbenstoss', 'arsenal', 'Kolbenstoss', 'Schiebt Gegner auf dem Weg zurueck und schenkt dir Zeit.', 55, ['arsenal-ambossfalle'], { turm: 'kolbenstoss' }),
-  knoten('arsenal-blitzspule', 'arsenal', 'Blitzspule', 'Arkaner Blitz, der auf weitere Ziele springt. Unverzichtbar in den Leerlanden.', 80, ['arsenal-balliste'], { turm: 'blitzspule' }),
-  knoten('arsenal-netzwerfer', 'arsenal', 'Netzwerfer', 'Haelt ein einzelnes Ziel vollstaendig fest.', 80, ['arsenal-kolbenstoss'], { turm: 'netzwerfer' }),
-  knoten('arsenal-leuchtfeuer', 'arsenal', 'Leuchtfeuer', 'Verstaerkt alle benachbarten Tuerme.', 110, ['arsenal-blitzspule'], { turm: 'leuchtfeuer' }),
-  knoten('arsenal-alchemie', 'arsenal', 'Alchemieturm', 'Bricht die Panzerung der Gegner im Umkreis.', 110, ['arsenal-netzwerfer'], { turm: 'alchemieturm' }),
+  //
+  // Bewusst guenstig. Eine Karte bringt beim ersten Abschluss mit drei Sternen
+  // 24 Splitter; die Turmwahl ist der interessanteste Teil der Vorbereitung und
+  // soll deshalb schon ab der ersten Karte etwas zu entscheiden geben, nicht
+  // erst am Ende der Kampagne. Zusammen kosten die acht Tuerme 172 Splitter,
+  // die zehn Karten auf Normal bringen 240. Der lange Weg sind Handwerk und
+  // Kommando, nicht das Arsenal.
+  knoten('arsenal-spaehturm', 'arsenal', 'Spaehturm', 'Deckt unsichtbare Gegner auf und erhoeht die Reichweite der Nachbarn.', 10, [], { turm: 'spaehturm' }),
+  knoten('arsenal-ambossfalle', 'arsenal', 'Ambossfalle', 'Eine Falle auf dem Weg. Schlaegt hart zu und laedt lange.', 12, [], { turm: 'ambossfalle' }),
+  knoten('arsenal-balliste', 'arsenal', 'Balliste', 'Sehr grosse Reichweite, durchschlaegt die halbe Panzerung.', 18, ['arsenal-spaehturm'], { turm: 'balliste' }),
+  knoten('arsenal-kolbenstoss', 'arsenal', 'Kolbenstoss', 'Schiebt Gegner auf dem Weg zurueck und schenkt dir Zeit.', 18, ['arsenal-ambossfalle'], { turm: 'kolbenstoss' }),
+  knoten('arsenal-blitzspule', 'arsenal', 'Blitzspule', 'Arkaner Blitz, der auf weitere Ziele springt. Unverzichtbar in den Leerlanden.', 25, ['arsenal-balliste'], { turm: 'blitzspule' }),
+  knoten('arsenal-netzwerfer', 'arsenal', 'Netzwerfer', 'Haelt ein einzelnes Ziel vollstaendig fest.', 25, ['arsenal-kolbenstoss'], { turm: 'netzwerfer' }),
+  knoten('arsenal-leuchtfeuer', 'arsenal', 'Leuchtfeuer', 'Verstaerkt alle benachbarten Tuerme.', 32, ['arsenal-blitzspule'], { turm: 'leuchtfeuer' }),
+  knoten('arsenal-alchemie', 'arsenal', 'Alchemieturm', 'Bricht die Panzerung der Gegner im Umkreis.', 32, ['arsenal-netzwerfer'], { turm: 'alchemieturm' }),
 
   // --- Handwerk: Bauen und Gold -------------------------------------------
   knoten('handwerk-schaden-1', 'handwerk', 'Geschliffen I', 'Alle Tuerme richten fuenf Prozent mehr Schaden an.', 20, [], { schaden: 0.05 }),

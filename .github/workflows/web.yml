@@ -52,7 +52,10 @@ jobs:
 
       - name: Bauen
         env:
+          # FASSUNG benennt das Ablagefach im Browser, VITE_FASSUNG steht im
+          # Hauptmenue. Zwei Zwecke, zwei Variablen.
           FASSUNG: ${{ github.run_number }}
+          VITE_FASSUNG: Web 1.0.${{ github.run_number }}
         run: npm run build:web
 
       - name: Ergebnis pruefen

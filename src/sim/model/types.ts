@@ -18,10 +18,20 @@ export type Region = 'wald' | 'glut' | 'leere';
  * Entspricht der Tabelle in docs/01-konzept.md.
  */
 export const RESISTANCE: Readonly<Record<ArmorType, Readonly<Record<DamageType, number>>>> = {
+  // Arkan wird von keiner Panzerung abgewehrt, physisch und Feuer schon. Das
+  // ist ein bekannter Schiefstand. Ein Versuch, leder gegen arkan zu haerten,
+  // hat die Kurve auf allen zehn Karten verschlechtert und die Sache nicht
+  // gebessert - deshalb bleibt es vorerst so. Wer das angeht, braucht dafuer
+  // einen eigenen Durchgang und neue Messungen, nicht eine Zeile nebenbei.
   leder: { physisch: 1.0, feuer: 1.0, arkan: 1.0 },
   eisen: { physisch: 0.4, feuer: 1.0, arkan: 1.1 },
   obsidian: { physisch: 0.9, feuer: 0.2, arkan: 1.1 },
-  aetherisch: { physisch: 0.0, feuer: 0.0, arkan: 1.0 },
+  // Kein vollstaendiger Schutz mehr. Bei null Schaden ist ein Loadout ohne
+  // Arkanturm in den Leerlanden nicht im Nachteil, sondern handlungsunfaehig:
+  // der schreiter kommt dort ab Welle eins, und die Karte ist ohne Blitzspule
+  // oder Frostturm rechnerisch unmoeglich. Ein Viertel laesst Arkan viermal so
+  // stark bleiben und macht aus der Sperre eine Entscheidung.
+  aetherisch: { physisch: 0.25, feuer: 0.25, arkan: 1.0 },
 };
 
 // ---------------------------------------------------------------------------
@@ -258,6 +268,15 @@ export interface LevelDef {
   readonly randWeg: readonly { readonly x: number; readonly y: number }[];
   readonly startGold: number;
   readonly lives: number;
+  /**
+   * Faktor auf das Leben aller Gegner dieser Karte, Bosse eingeschlossen.
+   *
+   * Das ist das Stellrad fuer die Kurve ueber die Kampagne hinweg. Ohne es
+   * liesse sich eine Karte nur ueber Gegnermengen und Wellenzahl haerten, und
+   * das aendert ihren Charakter mit: mehr Gegner heisst anderes Spiel, nicht
+   * nur schwereres. Eins bedeutet unveraendert.
+   */
+  readonly staerke: number;
   /** Sekunden zwischen zwei Wellen, wenn nicht vorzeitig gestartet wird. */
   readonly waveInterval: number;
   readonly waves: readonly WaveDef[];

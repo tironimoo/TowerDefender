@@ -22,6 +22,7 @@ import {
 import { loadoutPlaetze, verfuegbareTuerme } from '@meta/boni';
 import type { Herausforderung } from '@meta/herausforderung';
 import { beschreibe } from '@meta/herausforderung';
+import { FASSUNG } from '@shared/fassung';
 
 const REGION_NAME: Readonly<Record<LevelDef['region'], string>> = {
   wald: 'Waldsenke',
@@ -525,6 +526,9 @@ export function hauptmenue(
     el('div', { class: 'zeile schwach' }, [
       `${geschafft} von ${content.levelReihenfolge.length} Karten · ${sterneGesamt(stand)} Sterne · ${formatiere(stand.splitter)} Splitter`,
     ]),
+    // Die Fassung steht bewusst weit oben und nicht im Kleingedruckten: sie ist
+    // das Erste, was man bei einer Rueckmeldung wissen will.
+    el('div', { class: 'zeile fassung' }, [`Fassung ${FASSUNG}`]),
     el('div', { class: 'reihe' }, [
       taste('Spielen', rueckrufe.beiSpielen, 'stark'),
       taste('Forschung', rueckrufe.beiForschung),

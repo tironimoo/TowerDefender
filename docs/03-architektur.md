@@ -122,7 +122,7 @@ src/
   shared/     Mathematik, Objektvorräte
 tools/
   voxel-render/  Modelle zu Sprite-Blättern
-  sim-runner/    Simulation ohne Grafik für Balancing
+  sim-runner/    Simulation ohne Grafik für Balancing (balance, kurve, verlauf)
   preview/       Sichtprüfung im echten Browser
   doku/          erzeugt die Wertetabellen
 public/atlas/    die erzeugten Sprite-Blätter

@@ -71,7 +71,7 @@ Die Forschung kann das erhoehen.
 | leder | 100 % | 100 % | 100 % |
 | eisen | 40 % | 100 % | 110 % |
 | obsidian | 90 % | 20 % | 110 % |
-| aetherisch | 0 % | 0 % | 100 % |
+| aetherisch | 25 % | 25 % | 100 % |
 
 Durchschlag hebt einen Teil des Widerstands auf. Eine vollstaendige
 Immunitaet bleibt jedoch immun.
@@ -84,19 +84,19 @@ Immunitaet bleibt jedoch immun.
 | 2 | Nebelsenke | wald | 22×13 | 1 | 14 | 3 | 10 | 250 | kurzsichtig |
 | 3 | Zwei Furten | wald | 22×13 | 2 | 13 | 2 | 14 | 300 | teuer |
 | 4 | Wurzelgrund | wald | 22×13 | 1 | 18 | 4 | 14 | 320 | zaeh |
-| 5 | Basaltstege | glut | 22×13 | 1 | 16 | 4 | 16 | 340 | kurzsichtig |
-| 6 | Aschewind | glut | 24×14 | 2 | 18 | 4 | 16 | 360 | duerre |
-| 7 | Schmelzkessel | glut | 22×13 | 1 | 18 | 4 | 18 | 380 | gepanzert |
-| 8 | Wandelpfad | leere | 24×14 | 1 | 18 | 4 | 20 | 400 | hetze |
-| 9 | Dreifach | leere | 26×15 | 3 | 21 | 5 | 20 | 540 | teuer |
-| 10 | Der Schlund | leere | 24×14 | 2 | 18 | 5 | 25 | 460 | gepanzert |
+| 5 | Basaltstege | glut | 22×13 | 1 | 18 | 4 | 16 | 450 | kurzsichtig |
+| 6 | Aschewind | glut | 24×14 | 2 | 18 | 4 | 16 | 440 | duerre |
+| 7 | Schmelzkessel | glut | 22×13 | 1 | 20 | 4 | 18 | 470 | gepanzert |
+| 8 | Wandelpfad | leere | 24×14 | 1 | 20 | 4 | 20 | 500 | hetze |
+| 9 | Dreifach | leere | 26×15 | 3 | 21 | 5 | 20 | 560 | teuer |
+| 10 | Der Schlund | leere | 24×14 | 2 | 18 | 5 | 25 | 560 | gepanzert |
 
 ## Steigerung und Wirtschaft
 
 | Groesse | Wert |
 |---|---|
 | Leben je Welle | mal 1.095 gegenueber der vorherigen |
-| Gold je Welle | mal 1.06 |
+| Gold je Welle | mal 1.075 |
 | Vorzeitiger Wellenstart | 1 Gold je verbleibender Sekunde |
 | Leben je Karte | 20, Bosse kosten alle auf einmal |
 
@@ -126,18 +126,18 @@ Auf Albtraum traegt jede Karte zusaetzlich ihren eigenen Mutator.
 
 ## Forschung
 
-28 Knoten, zusammen 2255 Splitter.
+28 Knoten, zusammen 1877 Splitter.
 
 | Knoten | Ast | Kosten | Wirkung |
 |---|---|---|---|
-| Spaehturm | arsenal | 25 | Deckt unsichtbare Gegner auf und erhoeht die Reichweite der Nachbarn. |
-| Ambossfalle | arsenal | 35 | Eine Falle auf dem Weg. Schlaegt hart zu und laedt lange. |
-| Balliste | arsenal | 55 | Sehr grosse Reichweite, durchschlaegt die halbe Panzerung. |
-| Kolbenstoss | arsenal | 55 | Schiebt Gegner auf dem Weg zurueck und schenkt dir Zeit. |
-| Blitzspule | arsenal | 80 | Arkaner Blitz, der auf weitere Ziele springt. Unverzichtbar in den Leerlanden. |
-| Netzwerfer | arsenal | 80 | Haelt ein einzelnes Ziel vollstaendig fest. |
-| Leuchtfeuer | arsenal | 110 | Verstaerkt alle benachbarten Tuerme. |
-| Alchemieturm | arsenal | 110 | Bricht die Panzerung der Gegner im Umkreis. |
+| Spaehturm | arsenal | 10 | Deckt unsichtbare Gegner auf und erhoeht die Reichweite der Nachbarn. |
+| Ambossfalle | arsenal | 12 | Eine Falle auf dem Weg. Schlaegt hart zu und laedt lange. |
+| Balliste | arsenal | 18 | Sehr grosse Reichweite, durchschlaegt die halbe Panzerung. |
+| Kolbenstoss | arsenal | 18 | Schiebt Gegner auf dem Weg zurueck und schenkt dir Zeit. |
+| Blitzspule | arsenal | 25 | Arkaner Blitz, der auf weitere Ziele springt. Unverzichtbar in den Leerlanden. |
+| Netzwerfer | arsenal | 25 | Haelt ein einzelnes Ziel vollstaendig fest. |
+| Leuchtfeuer | arsenal | 32 | Verstaerkt alle benachbarten Tuerme. |
+| Alchemieturm | arsenal | 32 | Bricht die Panzerung der Gegner im Umkreis. |
 | Geschliffen I | handwerk | 20 | Alle Tuerme richten fuenf Prozent mehr Schaden an. |
 | Geschliffen II | handwerk | 45 | Noch einmal sechs Prozent mehr Schaden. |
 | Geschliffen III | handwerk | 90 | Noch einmal sieben Prozent mehr Schaden. |

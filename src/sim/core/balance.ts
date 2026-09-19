@@ -8,8 +8,17 @@
 /** Leben je Welle gegenueber der vorherigen. */
 export const WAVE_HEALTH_GROWTH = 1.095;
 
-/** Goldbelohnung je Welle. Bewusst langsamer als das Leben. */
-export const WAVE_GOLD_GROWTH = 1.06;
+/**
+ * Goldbelohnung je Welle. Langsamer als das Leben, aber nicht beliebig
+ * langsamer.
+ *
+ * Der Abstand zwischen beiden Zahlen ist die Steigung der Kampagne. Bei 1.095
+ * gegen 1.06 waechst die Bedrohung bis Welle 25 auf das 2,2-fache dessen, was
+ * der Spieler bezahlen kann - das ist kein Anstieg mehr, das ist eine Wand.
+ * Bei 1.075 sind es 1,56: es wird weiter schwerer, aber in einem Tempo, das
+ * sich mit besserem Spiel beantworten laesst.
+ */
+export const WAVE_GOLD_GROWTH = 1.075;
 
 /** Gold je verbleibender Sekunde beim vorzeitigen Wellenstart. */
 export const EARLY_START_BONUS_PER_SECOND = 1;

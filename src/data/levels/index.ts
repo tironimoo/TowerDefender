@@ -46,11 +46,20 @@ const GLUT_POOL_LUFT: readonly PoolEintrag[] = [
   { enemyId: 'aschefalter', ab: 1, gewicht: 2.0, basis: 4, wachstum: 3.2, abstand: 0.9 },
 ];
 
+/**
+ * Die Leerlande fuehren ihre schweren Gegner spaeter ein als frueher.
+ *
+ * Der rissgaenger kam ab Welle sieben, und genau dort starben im Messlauf alle
+ * Loadouts ausser einem - auf allen drei Leere-Karten, bei exakt derselben
+ * Welle. Vierhundertzwanzig Leben hinter Eisenpanzerung sind kein Anstieg,
+ * sondern eine Tuer, die zufaellt. Ab Welle zehn bleibt er gefaehrlich, aber
+ * der Spieler hat dann drei Wellen mehr Gold gesehen.
+ */
 const LEERE_POOL: readonly PoolEintrag[] = [
   { enemyId: 'schreiter', ab: 1, gewicht: 2.0, basis: 2, wachstum: 3.2, abstand: 1.8 },
   { enemyId: 'leerenbrut', ab: 3, gewicht: 2.0, basis: 3, wachstum: 3.2, abstand: 0.9 },
-  { enemyId: 'echo', ab: 5, gewicht: 1.2, basis: 1, wachstum: 3.0, abstand: 2.4 },
-  { enemyId: 'rissgaenger', ab: 7, gewicht: 1.2, basis: 1, wachstum: 3.2, abstand: 2.6 },
+  { enemyId: 'echo', ab: 6, gewicht: 1.2, basis: 1, wachstum: 3.0, abstand: 2.4 },
+  { enemyId: 'rissgaenger', ab: 10, gewicht: 1.2, basis: 1, wachstum: 3.2, abstand: 2.6 },
   { enemyId: 'aschefalter', ab: 2, gewicht: 1.4, basis: 3, wachstum: 3.2, abstand: 1.0 },
 ];
 
@@ -85,6 +94,7 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     fallenplaetze: 2,
     startGold: 250,
     lives: 20,
+    staerke: 1.55,
     waveInterval: 20,
     albtraumMutator: 'hetze',
     fluessigAnteil: 0.05,
@@ -120,6 +130,7 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     fallenplaetze: 3,
     startGold: 250,
     lives: 20,
+    staerke: 1.6,
     waveInterval: 20,
     albtraumMutator: 'kurzsichtig',
     fluessigAnteil: 0.06,
@@ -162,6 +173,7 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     fallenplaetze: 3,
     startGold: 300,
     lives: 20,
+    staerke: 1.5,
     waveInterval: 20,
     albtraumMutator: 'teuer',
     fluessigAnteil: 0.07,
@@ -202,6 +214,7 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     fallenplaetze: 4,
     startGold: 320,
     lives: 20,
+    staerke: 1.55,
     waveInterval: 20,
     albtraumMutator: 'zaeh',
     fluessigAnteil: 0.05,
@@ -234,11 +247,15 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
       boss: '',
       bossBegleitung: [],
     }),
-    // Schmale Stege: bewusst weniger Plaetze als auf den anderen Karten.
-    bauplaetze: 16,
+    // Die schmalen Stege macht der Verlauf des Weges, nicht ein Mangel an
+    // Bauplaetzen. Mit sechzehn Plaetzen war diese Karte die einzige, auf der
+    // die Zahl gegenueber der vorigen sank - und damit eine Wand, durch die
+    // kein Loadout kam.
+    bauplaetze: 18,
     fallenplaetze: 4,
-    startGold: 340,
+    startGold: 450,
     lives: 20,
+    staerke: 0.9,
     waveInterval: 19,
     albtraumMutator: 'kurzsichtig',
     fluessigAnteil: 0.16,
@@ -280,8 +297,9 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     }),
     bauplaetze: 18,
     fallenplaetze: 4,
-    startGold: 360,
+    startGold: 440,
     lives: 20,
+    staerke: 1.05,
     waveInterval: 19,
     albtraumMutator: 'duerre',
     fluessigAnteil: 0.12,
@@ -316,10 +334,11 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
         { enemyId: 'aschefalter', count: 10 },
       ],
     }),
-    bauplaetze: 18,
+    bauplaetze: 20,
     fallenplaetze: 4,
-    startGold: 380,
+    startGold: 470,
     lives: 20,
+    staerke: 1.0,
     waveInterval: 19,
     albtraumMutator: 'gepanzert',
     fluessigAnteil: 0.17,
@@ -351,10 +370,11 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
       boss: '',
       bossBegleitung: [],
     }),
-    bauplaetze: 18,
+    bauplaetze: 20,
     fallenplaetze: 4,
-    startGold: 400,
+    startGold: 500,
     lives: 20,
+    staerke: 0.85,
     waveInterval: 18,
     albtraumMutator: 'hetze',
     fluessigAnteil: 0.14,
@@ -400,8 +420,9 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     }),
     bauplaetze: 22,
     fallenplaetze: 5,
-    startGold: 540,
+    startGold: 560,
     lives: 20,
+    staerke: 0.75,
     waveInterval: 18,
     albtraumMutator: 'teuer',
     fluessigAnteil: 0.1,
@@ -448,8 +469,9 @@ export const LEVEL_DEFS: readonly LevelDef[] = [
     }),
     bauplaetze: 22,
     fallenplaetze: 5,
-    startGold: 460,
+    startGold: 560,
     lives: 20,
+    staerke: 0.8,
     waveInterval: 18,
     albtraumMutator: 'gepanzert',
     fluessigAnteil: 0.12,

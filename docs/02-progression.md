@@ -60,6 +60,52 @@ Splitter zurück und ist jederzeit möglich.
 Splitter kommen aus dem erstmaligen Abschluss einer Karte, aus jedem neuen
 Stern und aus dem Endlos-Modus.
 
+## Wie schnell die Türme kommen
+
+Eine Karte bringt beim ersten Abschluss mit drei Sternen 24 Splitter. Die acht
+zusätzlichen Türme kosten zusammen 172 — die zehn Karten auf Normal bringen
+240. Damit steht nach der ersten Karte schon der zweite Turm zur Wahl, nach der
+vierten sind es fünf, und gegen Ende der Kampagne stehen alle acht bereit.
+
+Das ist Absicht und war lange falsch eingestellt: vorher kostete das Arsenal
+550 Splitter. Wer die ganze Kampagne mit drei Sternen durchspielte und *nichts*
+anderes kaufte, hatte am Ende vier der acht Türme. Der erste kostete 25 — mehr,
+als die erste Karte einbrachte. Die Turmwahl ist der interessanteste Teil der
+Vorbereitung; sie gehört an den Anfang, nicht ans Ende.
+
+Der lange Weg sind jetzt Handwerk und Kommando. Die bleiben teuer und tragen
+das Spiel über Hart und Albtraum hinaus.
+
+## Die Schwierigkeitskurve
+
+Gemessen wird sie mit `npm run kurve`. Anders als `npm run balance` zeigt das
+Werkzeug nicht nur das beste Loadout, sondern jedes — genau darauf kommt es an:
+eine Karte, die nur ein einziges starkes Loadout schafft, ist keine Aufgabe,
+sondern eine Wand, und eine Karte, die jedes Loadout ohne Lebensverlust
+gewinnt, ist keine Aufgabe.
+
+Drei Stellräder formen die Kurve:
+
+- **Stärke der Karte** (`staerke` in `src/data/levels/index.ts`): Faktor auf das
+  Leben aller Gegner. Die ersten vier Karten stehen auf 1,5 bis 1,6, die
+  späten auf 0,75 bis 0,9. Ohne dieses Rad ließe sich eine Karte nur über
+  Gegnermengen härten, und das ändert ihren Charakter mit.
+- **Goldwachstum** (`WAVE_GOLD_GROWTH`): 1,075 gegen 1,095 beim Leben. Der
+  Abstand zwischen beiden Zahlen *ist* die Steigung der Kampagne. Bei 1,06
+  wuchs die Bedrohung bis Welle 25 auf das 2,2-fache dessen, was der Spieler
+  bezahlen konnte.
+- **Startgold je Karte**: steigt mit der Region mit, damit der Sprung in die
+  Glut und in die Leere bezahlbar bleibt.
+
+Zwei Dinge waren keine Einstellungsfrage, sondern Fehler:
+
+- Basaltstege hatte 16 Bauplätze, die Karte davor 18. Es war die einzige
+  Karte, auf der die Zahl sank — ausgerechnet beim Sprung in die Glut.
+- Ätherische Gegner ließen null physischen und null Feuerschaden durch. In den
+  Leerlanden steht der Schreiter ab Welle eins; ein Loadout ohne Arkanturm war
+  dort nicht im Nachteil, sondern handlungsunfähig. Jetzt sind es 25 Prozent:
+  Arkan bleibt viermal so gut, aber aus der Sperre wird eine Entscheidung.
+
 ## Spezialfähigkeiten
 
 Der letzte Ausbau ist nicht das Ende eines Turms. Danach öffnen sich zwei

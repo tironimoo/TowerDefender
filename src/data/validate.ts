@@ -93,6 +93,11 @@ export function validateContent(content: Content): string[] {
     if (level.buildSlots.length === 0) problems.push(`${where}: keine Bauplaetze.`);
     if (level.lives <= 0) problems.push(`${where}: Leben muessen groesser als null sein.`);
     if (level.startGold < 0) problems.push(`${where}: Startgold darf nicht negativ sein.`);
+    // Eine Staerke von null macht alle Gegner unsterblich, eine negative
+    // ergibt gar keinen Sinn. Beides faellt sonst erst beim Spielen auf.
+    if (!(level.staerke > 0)) {
+      problems.push(`${where}: Staerke muss groesser als null sein, ist ${level.staerke}.`);
+    }
     if (level.waves.length === 0) problems.push(`${where}: keine Wellen.`);
     if (level.breite <= 0 || level.hoehe <= 0) problems.push(`${where}: Karte ohne Groesse.`);
     if (level.albtraumMutator !== '' && !content.mutators.has(level.albtraumMutator)) {

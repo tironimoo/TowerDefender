@@ -21,7 +21,8 @@
     "app:ios": "npm run app:sync && npx cap open ios",
     "doku": "tsx tools/doku/startwerte.ts",
     "icons": "node tools/icons/build.mjs",
-    "build:web": "npm run build && node tools/web/pwa.mjs"
+    "build:web": "npm run build && node tools/web/pwa.mjs",
+    "kurve": "tsx tools/sim-runner/kurve.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",

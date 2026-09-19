@@ -15,11 +15,18 @@ describe('Schadensrechnung', () => {
     expect(resistanceFactor('eisen', 'physisch', 1)).toBeCloseTo(1.0);
   });
 
-  it('laesst vollstaendige Immunitaet immun bleiben', () => {
-    // Sonst waere die Regel gebrochen, dass nur arkan die Leerlande trifft.
-    expect(resistanceFactor('aetherisch', 'physisch', 1)).toBe(0);
-    expect(resistanceFactor('aetherisch', 'feuer', 1)).toBe(0);
+  it('macht aetherische Gegner sehr widerstandsfaehig, aber nicht unverwundbar', () => {
+    // Frueher stand hier null. Das war keine Schwierigkeit, sondern eine
+    // Sperre: der schreiter kommt in den Leerlanden ab Welle eins, und ein
+    // Loadout ohne Arkanturm richtete dort rechnerisch keinen Schaden an -
+    // die Karte war damit nicht schwer, sondern unmoeglich.
+    expect(resistanceFactor('aetherisch', 'physisch', 0)).toBeCloseTo(0.25);
+    expect(resistanceFactor('aetherisch', 'feuer', 0)).toBeCloseTo(0.25);
+    // Arkan bleibt deutlich die richtige Antwort: viermal so viel Schaden.
     expect(resistanceFactor('aetherisch', 'arkan', 0)).toBeCloseTo(1.0);
+    expect(resistanceFactor('aetherisch', 'arkan', 0)).toBeGreaterThan(
+      resistanceFactor('aetherisch', 'physisch', 0) * 3,
+    );
   });
 
   it('erhoeht einen Schwaechewert nicht durch Durchschlag', () => {

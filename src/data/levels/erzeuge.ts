@@ -26,6 +26,8 @@ export interface LevelPlan {
   readonly fallenplaetze: number;
   readonly startGold: number;
   readonly lives: number;
+  /** Faktor auf das Leben aller Gegner. Fehlt er, bleibt es bei eins. */
+  readonly staerke?: number;
   readonly waveInterval: number;
   readonly albtraumMutator: string;
   /** Anteil der Karte, der mit Fluessigkeit bedeckt wird. */
@@ -239,6 +241,7 @@ export function erzeugeLevel(plan: LevelPlan): LevelDef {
     fluessig,
     startGold: plan.startGold,
     lives: plan.lives,
+    staerke: plan.staerke ?? 1,
     waveInterval: plan.waveInterval,
     waves: plan.waves,
     albtraumMutator: plan.albtraumMutator,
