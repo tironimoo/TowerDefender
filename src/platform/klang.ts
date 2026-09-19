@@ -2,14 +2,15 @@
  * Ton.
  *
  * Alle Geraeusche werden erzeugt, nicht abgespielt. Das spart Dateien, haelt
- * das Spiel klein und passt zum eckigen Stil. Musik ist eine ruhige Flaeche,
- * die je Region ihre Stimmung wechselt.
+ * das Spiel klein und passt zum eckigen Stil. Die Musik steht in einem eigenen
+ * Modul, siehe musik.ts.
  *
  * Der Tonzusammenhang darf erst nach einer Berührung entstehen, sonst
  * blockieren ihn die Browser. Bis dahin passiert hier schlicht nichts.
  */
 
 import type { Region, SimEvent } from '@sim/index';
+import { Musik } from './musik';
 
 type Wellenform = 'sine' | 'square' | 'triangle' | 'sawtooth';
 
@@ -22,18 +23,10 @@ interface TonOptionen {
   readonly verzoegerung?: number;
 }
 
-/** Grundtoene der drei Regionen, als Frequenzen in Hertz. */
-const AKKORDE: Readonly<Record<Region, readonly number[]>> = {
-  wald: [98, 147, 196, 247],
-  glut: [87, 131, 174, 207],
-  leere: [82, 123, 165, 196],
-};
-
 class Klang {
   private kontext: AudioContext | null = null;
   private effekte: GainNode | null = null;
-  private musik: GainNode | null = null;
-  private musikQuellen: OscillatorNode[] = [];
+  private musikwerk: Musik | null = null;
   private tonAn = true;
   private musikAn = true;
   private letzterSchuss = 0;
@@ -42,9 +35,7 @@ class Klang {
   setzeEinstellungen(ton: boolean, musik: boolean): void {
     this.tonAn = ton;
     this.musikAn = musik;
-    if (this.musik !== null && this.kontext !== null) {
-      this.musik.gain.setTargetAtTime(musik ? 0.05 : 0, this.kontext.currentTime, 0.2);
-    }
+    this.musikwerk?.setzeAn(musik);
   }
 
   /** Muss aus einer Berührung heraus aufgerufen werden. */
@@ -58,9 +49,8 @@ class Klang {
       this.effekte = this.kontext.createGain();
       this.effekte.gain.value = 0.28;
       this.effekte.connect(this.kontext.destination);
-      this.musik = this.kontext.createGain();
-      this.musik.gain.value = 0;
-      this.musik.connect(this.kontext.destination);
+      this.musikwerk = new Musik(this.kontext, this.kontext.destination);
+      this.musikwerk.setzeAn(this.musikAn);
     } catch {
       // Kein Ton moeglich. Das Spiel laeuft ohne weiter.
       this.kontext = null;
@@ -125,6 +115,11 @@ class Klang {
   ausbauen(): void {
     this.ton({ form: 'square', von: 320, nach: 640, dauer: 0.16, laut: 0.2 });
     this.ton({ form: 'triangle', von: 480, nach: 960, dauer: 0.2, laut: 0.12, verzoegerung: 0.05 });
+  }
+
+  faehigkeit(): void {
+    this.ton({ form: 'triangle', von: 440, nach: 880, dauer: 0.18, laut: 0.2 });
+    this.ton({ form: 'square', von: 660, nach: 1320, dauer: 0.22, laut: 0.12, verzoegerung: 0.08 });
   }
 
   verkaufen(): void {
@@ -226,47 +221,18 @@ class Klang {
 
   // --- Musik ---------------------------------------------------------------
 
+  /**
+   * Startet eines der drei Stuecke.
+   *
+   * Welches, entscheidet der Musikspieler: meist das Stueck der Region, aber
+   * nie zweimal dasselbe hintereinander.
+   */
   starteMusik(region: Region): void {
-    this.stoppeMusik();
-    const kontext = this.kontext;
-    const ziel = this.musik;
-    if (kontext === null || ziel === null) return;
-
-    const toene = AKKORDE[region];
-    for (const frequenz of toene) {
-      const oszillator = kontext.createOscillator();
-      oszillator.type = 'triangle';
-      oszillator.frequency.value = frequenz;
-      const leise = kontext.createGain();
-      leise.gain.value = 0.25;
-      // Langsames Schweben, damit die Flaeche nicht steht.
-      const schwebung = kontext.createOscillator();
-      schwebung.type = 'sine';
-      schwebung.frequency.value = 0.05 + frequenz / 8000;
-      const tiefe = kontext.createGain();
-      tiefe.gain.value = 0.9;
-      schwebung.connect(tiefe).connect(oszillator.frequency);
-
-      oszillator.connect(leise).connect(ziel);
-      oszillator.start();
-      schwebung.start();
-      this.musikQuellen.push(oszillator, schwebung);
-    }
-    ziel.gain.setTargetAtTime(this.musikAn ? 0.05 : 0, kontext.currentTime, 1.5);
+    this.musikwerk?.starte(region);
   }
 
   stoppeMusik(): void {
-    for (const quelle of this.musikQuellen) {
-      try {
-        quelle.stop();
-      } catch {
-        // Bereits gestoppt.
-      }
-    }
-    this.musikQuellen = [];
-    if (this.musik !== null && this.kontext !== null) {
-      this.musik.gain.setValueAtTime(0, this.kontext.currentTime);
-    }
+    this.musikwerk?.stoppe();
   }
 }
 

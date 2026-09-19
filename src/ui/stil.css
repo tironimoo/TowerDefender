@@ -451,6 +451,82 @@ body {
   gap: 3px;
 }
 
+/* Die Ausbautaste nimmt immer die volle Breite ihrer Zeile ein. */
+.schweber .taste.voll {
+  width: 100%;
+  flex: 1;
+}
+
+/* Zwei Spezialfaehigkeiten nebeneinander. */
+.faehigkeiten {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.schweber .taste.faehigkeit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  min-height: 42px;
+  padding: 4px 7px;
+  font-size: 11px;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.schweber .taste.faehigkeit .fname {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.schweber .taste.faehigkeit .frang {
+  color: var(--akzent);
+  letter-spacing: 2px;
+  font-size: 10px;
+}
+
+.schweber .taste.faehigkeit .fpreis {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.schweber .taste.faehigkeit.erlernt {
+  border-color: var(--akzent);
+  background: #1b2a34;
+}
+
+.schweber .taste.faehigkeit.erlernt .frang {
+  color: var(--gruen);
+}
+
+/*
+ * Verkaufen steht allein unten und wird nie breiter.
+ * Sonst rutscht die Taste beim letzten Ausbau genau dorthin, wo der Finger
+ * eben noch die Ausbautaste getroffen hat.
+ */
+.verkaufzeile {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+  border-top: 1px solid var(--rand);
+  padding-top: 5px;
+}
+
+.verkaufzeile > .taste {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
 .zielreihe .taste {
   min-height: 28px;
   padding: 0 2px;

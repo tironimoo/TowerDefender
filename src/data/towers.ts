@@ -8,7 +8,13 @@
  * Forschung. Siehe docs/02-progression.md.
  */
 
-import type { AuraEffect, TowerDef, TowerUpgradeDef } from '@sim/model/types';
+import type {
+  AuraEffect,
+  FaehigkeitDef,
+  TowerDef,
+  TowerUpgradeDef,
+  TurmBonus,
+} from '@sim/model/types';
 import { NO_EFFECT } from '@sim/model/types';
 
 /** Drei gleichfoermige Ausbaustufen. Siehe docs/05-startwerte.md. */
@@ -38,6 +44,78 @@ function aura(teil: Partial<AuraEffect>): AuraEffect {
   };
 }
 
+/**
+ * Spezialfaehigkeiten.
+ *
+ * Verfuegbar erst, wenn ein Turm voll ausgebaut ist. Jeder Turm hat zwei, und
+ * jede laesst sich zweimal steigern. Die Raenge wirken kumulativ.
+ *
+ * Sie sind der Goldspeicher der spaeten Partie. Ohne sie haette ein Spieler
+ * mit vollen Bauplaetzen und ausgebauten Tuermen nichts mehr zu tun, waehrend
+ * die Wellen weiter wachsen.
+ */
+const KOSTEN: readonly number[] = [1.4, 2.2];
+
+function faehigkeit(
+  id: string,
+  name: string,
+  beschreibung: string,
+  raenge: readonly Partial<TurmBonus>[],
+): FaehigkeitDef {
+  return { id, name, beschreibung, kosten: KOSTEN, raenge };
+}
+
+const FAEHIGKEITEN: Readonly<Record<string, readonly FaehigkeitDef[]>> = {
+  armbrustturm: [
+    faehigkeit('armbrustturm-repetierer', 'Repetierer', 'Ein zweiter Spannhebel. Der Turm schiesst deutlich schneller.', [{ feuerrate: 1.35 }, { feuerrate: 1.26 }]),
+    faehigkeit('armbrustturm-stahlbolzen', 'Stahlbolzen', 'Gehaertete Spitzen. Mehr Schaden und deutlich mehr Durchschlag.', [{ schaden: 1.15, durchschlag: 0.3 }, { schaden: 1.15, durchschlag: 0.3 }]),
+  ],
+  schleuder: [
+    faehigkeit('schleuder-streuschuss', 'Streuschuss', 'Der Stein zerspringt beim Aufschlag und erfasst einen weiteren Umkreis.', [{ splash: 0.6 }, { splash: 0.6 }]),
+    faehigkeit('schleuder-findling', 'Findling', 'Ein deutlich schwererer Brocken. Viel mehr Schaden je Treffer.', [{ schaden: 1.4 }, { schaden: 1.35 }]),
+  ],
+  frostturm: [
+    faehigkeit('frostturm-dauerfrost', 'Dauerfrost', 'Der Frost beisst tiefer und haelt Gegner noch staerker auf.', [{ verlangsamung: 0.15 }, { verlangsamung: 0.15 }]),
+    faehigkeit('frostturm-eislanze', 'Eislanze', 'Aus dem Frost wird eine echte Waffe. Ein Vielfaches an arkanem Schaden.', [{ schaden: 2.2 }, { schaden: 1.6 }]),
+  ],
+  glutduese: [
+    faehigkeit('glutduese-flammenmeer', 'Flammenmeer', 'Die Flamme faechert weit auf und erfasst ganze Gruppen.', [{ splash: 0.7 }, { splash: 0.7 }]),
+    faehigkeit('glutduese-zunder', 'Zunder', 'Gegner brennen sehr viel heisser und laenger nach.', [{ brandDps: 8 }, { brandDps: 10 }]),
+  ],
+  balliste: [
+    faehigkeit('balliste-speerspitze', 'Speerspitze', 'Der Bolzen geht durch fast jede Panzerung hindurch.', [{ durchschlag: 0.35 }, { durchschlag: 0.35 }]),
+    faehigkeit('balliste-windenwerk', 'Windenwerk', 'Eine Winde statt Muskelkraft. Die Balliste spannt viel schneller nach.', [{ feuerrate: 1.45 }, { feuerrate: 1.31 }]),
+  ],
+  blitzspule: [
+    faehigkeit('blitzspule-funkenflug', 'Funkenflug', 'Der Blitz springt auf noch mehr Ziele. Die Antwort auf jeden Schwarm.', [{ kettenSpruenge: 2 }, { kettenSpruenge: 2 }]),
+    faehigkeit('blitzspule-ueberladung', 'Ueberladung', 'Die Spule laeuft am Anschlag. Jeder Schlag trifft weit haerter.', [{ schaden: 1.45 }, { schaden: 1.38 }]),
+  ],
+  ambossfalle: [
+    faehigkeit('ambossfalle-schwerkraft', 'Schwerkraft', 'Der Amboss faellt aus doppelter Hoehe. Verheerender Einschlag.', [{ schaden: 1.5 }, { schaden: 1.4 }]),
+    faehigkeit('ambossfalle-sprungfeder', 'Sprungfeder', 'Eine staerkere Feder zieht den Amboss viel schneller wieder hoch.', [{ feuerrate: 1.6 }, { feuerrate: 1.38 }]),
+  ],
+  netzwerfer: [
+    faehigkeit('netzwerfer-stacheln', 'Stacheln', 'Widerhaken im Netz. Aus der Fessel wird zusaetzlich Schaden.', [{ schadenPlus: 28 }, { schadenPlus: 42 }]),
+    faehigkeit('netzwerfer-spulwerk', 'Spulwerk', 'Zwei Spulen im Wechsel. Kaum noch Pause zwischen zwei Wuerfen.', [{ feuerrate: 1.6 }, { feuerrate: 1.44 }]),
+  ],
+  kolbenstoss: [
+    faehigkeit('kolbenstoss-sturmbock', 'Sturmbock', 'Ein Rammkopf aus Eisen. Der Stoss richtet erheblichen Schaden an.', [{ schaden: 2.0 }, { schaden: 1.6 }]),
+    faehigkeit('kolbenstoss-breitschub', 'Breitschub', 'Eine breitere Platte erfasst deutlich mehr Gegner auf einmal.', [{ splash: 0.6 }, { splash: 0.6 }]),
+  ],
+  leuchtfeuer: [
+    faehigkeit('leuchtfeuer-bannstrahl', 'Bannstrahl', 'Gebuendeltes Licht. Die Verstaerkung der Nachbarn steigt stark.', [{ auraStaerke: 1.35 }, { auraStaerke: 1.3 }]),
+    faehigkeit('leuchtfeuer-fernlicht', 'Fernlicht', 'Das Licht reicht ueber einen viel groesseren Teil der Karte.', [{ reichweite: 1.4 }, { reichweite: 1.29 }]),
+  ],
+  alchemieturm: [
+    faehigkeit('alchemieturm-scheidewasser', 'Scheidewasser', 'Eine schaerfere Mischung loest fast jede Panzerung auf.', [{ auraStaerke: 1.35 }, { auraStaerke: 1.3 }]),
+    faehigkeit('alchemieturm-schwadenfeld', 'Schwadenfeld', 'Die Daempfe ziehen deutlich weiter ueber die Karte.', [{ reichweite: 1.4 }, { reichweite: 1.29 }]),
+  ],
+  spaehturm: [
+    faehigkeit('spaehturm-horizont', 'Horizont', 'Ein hoeherer Ausguck. Der Blick reicht bis weit ueber die Karte.', [{ reichweite: 1.5 }, { reichweite: 1.33 }]),
+    faehigkeit('spaehturm-zielrechner', 'Zielrechner', 'Die Nachbarn bekommen deutlich bessere Zielangaben.', [{ auraStaerke: 1.4 }, { auraStaerke: 1.36 }]),
+  ],
+};
+
 export const TOWER_DEFS: readonly TowerDef[] = [
   {
     id: 'armbrustturm',
@@ -57,6 +135,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'keines' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.armbrustturm ?? [],
     forschung: null,
   },
   {
@@ -77,6 +156,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'keines' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.schleuder ?? [],
     forschung: null,
   },
   {
@@ -98,6 +178,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'keines' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.frostturm ?? [],
     forschung: null,
   },
   {
@@ -118,6 +199,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'keines' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.glutduese ?? [],
     forschung: null,
   },
   {
@@ -138,6 +220,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'staerkster',
     special: { kind: 'keines' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.balliste ?? [],
     forschung: 'arsenal-balliste',
   },
   {
@@ -158,6 +241,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'kette', jumps: 3, falloff: 0.25 },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.blitzspule ?? [],
     forschung: 'arsenal-blitzspule',
   },
   {
@@ -178,6 +262,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'staerkster',
     special: { kind: 'falle' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.ambossfalle ?? [],
     forschung: 'arsenal-ambossfalle',
   },
   {
@@ -198,6 +283,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'staerkster',
     special: { kind: 'keines' },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.netzwerfer ?? [],
     forschung: 'arsenal-netzwerfer',
   },
   {
@@ -218,6 +304,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'rueckstoss', distance: 1.5 },
     upgrades: STANDARD_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.kolbenstoss ?? [],
     forschung: 'arsenal-kolbenstoss',
   },
   {
@@ -238,6 +325,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'aura', effect: aura({ damageBonus: 0.2, rangeBonus: 0.15 }) },
     upgrades: AURA_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.leuchtfeuer ?? [],
     forschung: 'arsenal-leuchtfeuer',
   },
   {
@@ -258,6 +346,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'aura', effect: aura({ armorShred: 0.4, damageAmp: 0.15, aufGegner: true }) },
     upgrades: AURA_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.alchemieturm ?? [],
     forschung: 'arsenal-alchemie',
   },
   {
@@ -278,6 +367,7 @@ export const TOWER_DEFS: readonly TowerDef[] = [
     defaultPolicy: 'erster',
     special: { kind: 'aura', effect: aura({ rangeBonus: 0.1, reveal: true }) },
     upgrades: AURA_UPGRADES,
+    faehigkeiten: FAEHIGKEITEN.spaehturm ?? [],
     forschung: 'arsenal-spaehturm',
   },
 ];

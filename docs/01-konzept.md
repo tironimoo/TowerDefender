@@ -216,9 +216,14 @@ billig zu bauen und gibt erfahrenen Spielern viel Kontrolle, ohne Anfänger zu
 2. Bauphase: Startgold platzieren, keine Zeitbegrenzung vor der ersten Welle.
 3. Wellen: zwischen den Wellen läuft ein Zähler, vorzeitiges Starten gibt
    Bonusgold. Das belohnt Können, ohne Anfänger zu bestrafen.
-4. Ausbau: jeder Turm hat drei Ausbaustufen, danach eine Gabelung zwischen zwei
-   Endformen. Die Gabelung ist endgültig für diese Partie.
-5. Abschluss: Sternewertung nach verbleibenden Leben.
+4. Ausbau: jeder Turm hat drei Ausbaustufen. Jede Stufe verändert auch die
+   Silhouette deutlich, damit man einer vollen Karte auf einen Blick ansieht,
+   wo noch Ausbau fehlt.
+5. Spezialfähigkeiten: erst nach dem letzten Ausbau. Jeder Turm hat zwei, jede
+   lässt sich zweimal steigern. Sie sind teuer und machen aus einem fertigen
+   Turm noch einmal ein Ziel für das Gold der späten Wellen. Gelernte Ränge
+   erscheinen als kleine Edelsteine über dem Turm.
+6. Abschluss: Sternewertung nach verbleibenden Leben.
 
 Leben pro Karte: zwanzig, durch Forschung mehr. Drei Sterne bei vollen Leben,
 zwei Sterne ab drei Vierteln, ein Stern bei mindestens einem. Ein
@@ -228,7 +233,12 @@ durchgekommener Boss kostet alle Leben auf einmal.
 
 - Antippen eines freien Bauplatzes öffnet ein Ringmenü mit den vier Türmen des
   Loadouts. Preis und Reichweitenvorschau erscheinen sofort.
-- Antippen eines eigenen Turms öffnet Ausbau, Verkauf und Zielpriorität.
+- Antippen eines eigenen Turms öffnet Ausbau, Spezialfähigkeiten, Verkauf und
+  Zielpriorität. Das Menü bleibt offen und aktualisiert sich selbst: wer auf
+  Gold wartet, muss es nicht schließen und wieder öffnen.
+- Die Verkaufstaste steht immer an derselben Stelle und behält ihre Größe. Sonst
+  rutscht sie beim letzten Ausbau unter den Finger, der eben noch die
+  Ausbautaste getroffen hat.
 - Ziehen verschiebt die Karte, Zusammenziehen zweier Finger zoomt.
 - Geschwindigkeitsschalter mit einfach, doppelt und dreifach. Wird von erfahrenen
   Spielern ständig benutzt und gehört an eine gut erreichbare Ecke.

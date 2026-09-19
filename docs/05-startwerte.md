@@ -3,7 +3,7 @@
 Diese Datei wird erzeugt. Nicht von Hand aendern, sondern die Daten unter
 `src/data` und dann `npm run doku` ausfuehren.
 
-Erzeugt am 2026-09-17.
+Erzeugt am 2026-09-19.
 
 ## Einheiten
 

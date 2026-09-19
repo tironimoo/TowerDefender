@@ -25,6 +25,8 @@ const FARBE_LEBEN = 0x7fd46a;
 const FARBE_SCHILD = 0x7fd4ff;
 const FARBE_LEER = 0x1b1d24;
 const FARBE_BOSS = 0xff7a5c;
+/** Farben der beiden Spezialfaehigkeiten. Gleiche Reihenfolge wie im Menue. */
+const FARBE_FAEHIGKEIT = [0xffd479, 0x8fd6ff] as const;
 
 export class Szene {
   /** Alles, was sich nach Tiefe sortiert. */
@@ -275,6 +277,40 @@ export class Szene {
       if (enemy.shield > 0 && enemy.maxShield > 0) {
         const schildAnteil = Math.max(0, Math.min(1, enemy.shield / enemy.maxShield));
         this.balken.rect(x, y - hoehe - 1, breite * schildAnteil, 2).fill({ color: FARBE_SCHILD });
+      }
+    }
+    this.zeichneFaehigkeiten(world);
+  }
+
+  /**
+   * Kleine Edelsteine ueber ausgebauten Tuermen.
+   *
+   * Ein Turm mit gelernter Spezialfaehigkeit soll sich auch ohne geoeffnetes
+   * Menue von seinen Nachbarn unterscheiden. Je Faehigkeit eine Reihe, je Rang
+   * ein Stein.
+   */
+  private zeichneFaehigkeiten(world: World): void {
+    for (const tower of world.towers.items) {
+      if (!tower.active) continue;
+      if (tower.faehigkeitA <= 0 && tower.faehigkeitB <= 0) continue;
+
+      zuBildschirm(tower.x, tower.y, this.punkt);
+      const raenge = [tower.faehigkeitA, tower.faehigkeitB];
+      let reihe = 0;
+      for (let i = 0; i < raenge.length; i++) {
+        const rang = raenge[i] ?? 0;
+        if (rang <= 0) continue;
+        const farbe = FARBE_FAEHIGKEIT[i] ?? 0xffffff;
+        const y = this.punkt.y - 100 - reihe * 12;
+        const start = this.punkt.x - ((rang - 1) * 12) / 2;
+        for (let r = 0; r < rang; r++) {
+          const x = start + r * 12;
+          this.balken
+            .poly([x, y - 5, x + 5, y, x, y + 5, x - 5, y])
+            .fill({ color: farbe, alpha: 0.95 })
+            .stroke({ color: 0x1b1d24, width: 1.5, alpha: 0.9 });
+        }
+        reihe++;
       }
     }
   }

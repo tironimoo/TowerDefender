@@ -316,61 +316,128 @@ export interface TowerOptions {
 
 /**
  * Ein Turm.
+ *
  * Sockel und Schaft wachsen mit der Ausbaustufe, der Kopf kommt vom Turmtyp.
- * Ab Stufe zwei kommen Eckpfeiler dazu, ab Stufe drei ein Zierkranz.
+ * Der Unterschied zwischen den Stufen ist bewusst gross: auf einer vollen
+ * Karte muss man einem Turm aus zwei Metern Entfernung ansehen, wie weit er
+ * ausgebaut ist. Deshalb waechst nicht nur die Hoehe, sondern auch die Breite,
+ * und ab Stufe zwei kommt Zierrat dazu, der die Silhouette veraendert.
+ *
+ * Stufe 0: gedrungener Stumpf.
+ * Stufe 1: hoeherer Schaft mit Zierring.
+ * Stufe 2: breiter Sockel, vier Eckpfeiler, Banner.
+ * Stufe 3: Turm mit Kranz, Leuchtsteinen und Fahne.
  */
 export function tower(options: TowerOptions): VoxelModel {
-  const einheit = 1;
-  const sockelHoehe = 4;
-  const schaftHoehe = 6 + options.level * 2.5;
-  const sockelBreite = 13;
-  const schaftBreite = 9 + options.level * 0.6;
+  const level = Math.max(0, Math.min(3, options.level));
+  const glow = options.glowColor ?? options.accent;
+
+  const sockelHoehe = 3.5 + level * 0.8;
+  const sockelBreite = 12 + level * 1.5;
+  const schaftHoehe = 4.5 + level * 4.4;
+  const schaftBreite = 8.5 + level * 0.9;
   const kopfY = sockelHoehe + schaftHoehe;
 
-  const zier: VoxelBox[] = [];
-  if (options.level >= 2) {
+  const sockel: VoxelBox[] = [
+    box([0, sockelHoehe / 2, 0], [sockelBreite, sockelHoehe, sockelBreite], options.base),
+    box([0, sockelHoehe + 0.5, 0], [sockelBreite - 2, 1, sockelBreite - 2], options.mid),
+  ];
+  if (level >= 2) {
+    // Eine zweite Stufe am Sockel. Macht den Turm von unten her breiter.
+    sockel.unshift(
+      box([0, 1, 0], [sockelBreite + 3, 2, sockelBreite + 3], options.base, { grain: 0.12 }),
+    );
+  }
+
+  const schaft: VoxelBox[] = [
+    box([0, sockelHoehe + schaftHoehe / 2, 0], [schaftBreite, schaftHoehe, schaftBreite], options.mid),
+  ];
+
+  // Ab Stufe eins ein Zierring auf halber Hoehe.
+  if (level >= 1) {
+    schaft.push(
+      box(
+        [0, sockelHoehe + schaftHoehe * 0.5, 0],
+        [schaftBreite + 1.8, 1.4, schaftBreite + 1.8],
+        options.accent,
+      ),
+    );
+  }
+
+  // Ab Stufe zwei vier Eckpfeiler und ein Banner.
+  if (level >= 2) {
+    const pfeilerHoehe = schaftHoehe * 0.8;
+    const abstand = sockelBreite / 2.6;
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
-        zier.push(
+        schaft.push(
           box(
-            [(sx * sockelBreite) / 2.4, sockelHoehe + 2, (sz * sockelBreite) / 2.4],
-            [2.4, 4 + options.level, 2.4],
+            [sx * abstand, sockelHoehe + pfeilerHoehe / 2, sz * abstand],
+            [2.8, pfeilerHoehe, 2.8],
             options.accent,
           ),
         );
+        if (level >= 3) {
+          // Kappen mit Leuchtstein obenauf.
+          schaft.push(
+            box(
+              [sx * abstand, sockelHoehe + pfeilerHoehe + 1, sz * abstand],
+              [3.8, 2, 3.8],
+              options.base,
+            ),
+            box(
+              [sx * abstand, sockelHoehe + pfeilerHoehe + 2.8, sz * abstand],
+              [1.8, 1.8, 1.8],
+              glow,
+              { glow: 0.9, grain: 0 },
+            ),
+          );
+        }
       }
     }
+    schaft.push(
+      box(
+        [0, sockelHoehe + schaftHoehe * 0.42, schaftBreite / 2 + 0.6],
+        [schaftBreite * 0.55, schaftHoehe * 0.5, 0.7],
+        options.accent,
+        { grain: 0.16 },
+      ),
+    );
   }
-  if (options.level >= 3) {
-    zier.push(box([0, kopfY - 0.8, 0], [schaftBreite + 3.5, 1.6, schaftBreite + 3.5], options.accent));
-    if (options.glowColor !== undefined) {
-      for (const sx of [-1, 1]) {
-        zier.push(
-          box([(sx * (schaftBreite + 3)) / 2, kopfY - 0.8, 0], [1.4, 1.4, 1.4], options.glowColor, {
-            glow: 0.8,
-            grain: 0,
-          }),
-        );
-      }
+
+  // Auf Stufe drei ein Kranz unter dem Kopf und eine Fahne.
+  if (level >= 3) {
+    schaft.push(
+      box([0, kopfY - 1, 0], [schaftBreite + 5, 2, schaftBreite + 5], options.accent),
+      box([0, kopfY - 2.4, 0], [schaftBreite + 3, 1.4, schaftBreite + 3], options.base),
+    );
+    for (const seite of [-1, 1]) {
+      schaft.push(
+        box([(seite * (schaftBreite + 4.4)) / 2, kopfY - 1, 0], [1.6, 1.6, 1.6], glow, {
+          glow: 1,
+          grain: 0,
+        }),
+        box([0, kopfY - 1, (seite * (schaftBreite + 4.4)) / 2], [1.6, 1.6, 1.6], glow, {
+          glow: 1,
+          grain: 0,
+        }),
+      );
     }
+
+    const fahnenX = sockelBreite / 2.6;
+    const fahnenY = sockelHoehe + schaftHoehe * 0.8 + 4;
+    schaft.push(
+      box([fahnenX, fahnenY + 4, fahnenX], [1, 9, 1], options.base),
+      box([fahnenX + 3, fahnenY + 6.5, fahnenX], [5, 4, 0.8], options.accent, { grain: 0.18 }),
+    );
   }
 
   return {
     id: options.id,
     parts: [
-      part('sockel', [0, 0, 0], [
-        box([0, sockelHoehe / 2, 0], [sockelBreite, sockelHoehe, sockelBreite], options.base),
-        box([0, sockelHoehe + 0.4, 0], [sockelBreite - 2, 0.8, sockelBreite - 2], options.mid),
-      ]),
-      part('schaft', [0, sockelHoehe, 0], [
-        box(
-          [0, sockelHoehe + schaftHoehe / 2, 0],
-          [schaftBreite, schaftHoehe, schaftBreite],
-          options.mid,
-        ),
-        ...zier,
-      ]),
-      part('kopf', [0, kopfY, 0], [...options.head(kopfY, einheit)]),
+      part('sockel', [0, 0, 0], sockel),
+      part('schaft', [0, sockelHoehe, 0], schaft),
+      part('kopf', [0, kopfY, 0], [...options.head(kopfY, 1)]),
     ],
   };
 }

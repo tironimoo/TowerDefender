@@ -17,6 +17,7 @@ import type {
   SpawnOrder,
   Tower,
   TowerDef,
+  TurmBonus,
 } from '../model/types';
 import { DIFFICULTY, KEIN_TURM_BONUS, KEINE_BONI, NO_EFFECT } from '../model/types';
 import type { World } from '../model/world';
@@ -121,6 +122,9 @@ export function applyCommand(world: World, command: SimCommand): void {
     case 'verkaufen':
       commandSell(world, command.towerId);
       return;
+    case 'faehigkeit':
+      commandFaehigkeit(world, command.towerId, command.index);
+      return;
     case 'ziel-setzen': {
       const tower = findTower(world, command.towerId);
       if (tower === null) {
@@ -181,6 +185,8 @@ function commandBuild(world: World, slotIndex: number, towerDefId: string): void
   tower.x = slot.x;
   tower.y = slot.y;
   tower.level = 0;
+  tower.faehigkeitA = 0;
+  tower.faehigkeitB = 0;
   tower.cooldown = 0;
   tower.stunTicks = 0;
   tower.policy = def.defaultPolicy;
@@ -234,6 +240,80 @@ function commandUpgrade(world: World, towerId: number): void {
   world.events.push({ type: 'turm-ausgebaut', towerId: tower.id, level: tower.level });
 }
 
+/** Erreichter Rang einer Faehigkeit. */
+export function faehigkeitRang(tower: Tower, index: number): number {
+  return index === 0 ? tower.faehigkeitA : tower.faehigkeitB;
+}
+
+/**
+ * Kosten des naechsten Ranges einer Faehigkeit.
+ * Null, wenn der Turm noch nicht voll ausgebaut oder der Rang schon erreicht
+ * ist.
+ */
+export function faehigkeitKosten(
+  world: World,
+  def: TowerDef,
+  tower: Tower,
+  index: number,
+): number | null {
+  if (tower.level < def.upgrades.length) return null;
+  const faehigkeit = def.faehigkeiten[index];
+  if (faehigkeit === undefined) return null;
+  const rang = faehigkeitRang(tower, index);
+  const anteil = faehigkeit.kosten[rang];
+  if (anteil === undefined) return null;
+  const faktor = world.boni.ausbauKosten * (world.mutator?.ausbauKosten ?? 1);
+  return Math.round(def.cost * anteil * faktor);
+}
+
+function commandFaehigkeit(world: World, towerId: number, index: number): void {
+  const tower = findTower(world, towerId);
+  if (tower === null) {
+    world.events.push({ type: 'befehl-abgelehnt', grund: 'Turm nicht gefunden.' });
+    return;
+  }
+  const def = world.content.towers.get(tower.defId);
+  if (def === undefined) return;
+
+  const faehigkeit = def.faehigkeiten[index];
+  if (faehigkeit === undefined) {
+    world.events.push({ type: 'befehl-abgelehnt', grund: 'Diese Faehigkeit gibt es nicht.' });
+    return;
+  }
+  if (tower.level < def.upgrades.length) {
+    world.events.push({
+      type: 'befehl-abgelehnt',
+      grund: 'Erst voll ausbauen, dann Faehigkeiten.',
+    });
+    return;
+  }
+
+  const kosten = faehigkeitKosten(world, def, tower, index);
+  if (kosten === null) {
+    world.events.push({ type: 'befehl-abgelehnt', grund: 'Faehigkeit ist voll gesteigert.' });
+    return;
+  }
+  if (world.gold < kosten) {
+    world.events.push({ type: 'befehl-abgelehnt', grund: 'Nicht genug Gold.' });
+    return;
+  }
+
+  world.gold -= kosten;
+  world.stats.goldSpent += kosten;
+  tower.invested += kosten;
+  if (index === 0) tower.faehigkeitA += 1;
+  else tower.faehigkeitB += 1;
+  applyTowerStats(world, tower, def);
+
+  world.events.push({
+    type: 'faehigkeit-gelernt',
+    towerId: tower.id,
+    index,
+    rang: faehigkeitRang(tower, index),
+    name: faehigkeit.name,
+  });
+}
+
 function commandSell(world: World, towerId: number): void {
   const tower = findTower(world, towerId);
   if (tower === null) {
@@ -270,8 +350,22 @@ function commandStartWave(world: World): void {
  * spaeter, jeden Schritt neu, siehe systems/auren.ts.
  */
 export function applyTowerStats(world: World, tower: Tower, def: TowerDef): void {
-  const turmBonus = world.boni.tuerme.get(def.id) ?? KEIN_TURM_BONUS;
-  let damage = def.damage + turmBonus.schadenPlus;
+  const boni = world.boni;
+
+  // Dauerhafte Verbesserungen und erlernte Faehigkeiten ergeben zusammen die
+  // Werte dieses einen Turms. Auren kommen erst spaeter dazu, jeden Schritt
+  // neu, siehe systems/auren.ts.
+  let turm = boni.tuerme.get(def.id) ?? KEIN_TURM_BONUS;
+  def.faehigkeiten.forEach((faehigkeit, index) => {
+    const rang = faehigkeitRang(tower, index);
+    for (let stufe = 0; stufe < rang; stufe++) {
+      const wirkung = faehigkeit.raenge[stufe];
+      if (wirkung !== undefined) turm = verbinde(turm, wirkung);
+    }
+  });
+
+  // Der Zuschlag kommt vor den Faktoren, sonst wuerde er mit ausgebaut.
+  let damage = def.damage + turm.schadenPlus;
   let range = def.range;
   for (let step = 0; step < tower.level; step++) {
     const upgrade = def.upgrades[step];
@@ -279,9 +373,6 @@ export function applyTowerStats(world: World, tower: Tower, def: TowerDef): void
     damage *= 1 + upgrade.damageBonus;
     range *= 1 + upgrade.rangeBonus;
   }
-
-  const boni = world.boni;
-  const turm = turmBonus;
 
   damage *= turm.schaden * boni.globalerSchaden;
   range *= turm.reichweite * boni.globaleReichweite * (world.mutator?.turmReichweite ?? 1);
@@ -299,10 +390,32 @@ export function applyTowerStats(world: World, tower: Tower, def: TowerDef): void
     def.special.kind === 'kette' ? def.special.jumps + turm.kettenSpruenge : 0;
   tower.auraStaerke = turm.auraStaerke;
   tower.onHit = {
-    slowFactor: Math.min(1, def.onHit.slowFactor + (def.onHit.slowFactor > 0 ? turm.verlangsamung : 0)),
+    slowFactor: Math.min(
+      1,
+      def.onHit.slowFactor + (def.onHit.slowFactor > 0 ? turm.verlangsamung : 0),
+    ),
     slowDuration: def.onHit.slowDuration,
     burnDps: def.onHit.burnDps > 0 ? def.onHit.burnDps + turm.brandDps : 0,
     burnDuration: def.onHit.burnDuration,
+  };
+}
+
+/**
+ * Verbindet zwei Saetze von Turmwerten.
+ * Faktoren multiplizieren sich, Zuschlaege addieren sich.
+ */
+function verbinde(basis: TurmBonus, teil: Partial<TurmBonus>): TurmBonus {
+  return {
+    schadenPlus: basis.schadenPlus + (teil.schadenPlus ?? 0),
+    schaden: basis.schaden * (teil.schaden ?? 1),
+    reichweite: basis.reichweite * (teil.reichweite ?? 1),
+    feuerrate: basis.feuerrate * (teil.feuerrate ?? 1),
+    splash: basis.splash + (teil.splash ?? 0),
+    durchschlag: Math.max(0, Math.min(1, basis.durchschlag + (teil.durchschlag ?? 0))),
+    verlangsamung: basis.verlangsamung + (teil.verlangsamung ?? 0),
+    brandDps: basis.brandDps + (teil.brandDps ?? 0),
+    kettenSpruenge: Math.max(0, basis.kettenSpruenge + (teil.kettenSpruenge ?? 0)),
+    auraStaerke: basis.auraStaerke * (teil.auraStaerke ?? 1),
   };
 }
 
@@ -376,6 +489,8 @@ function createTower(): Tower {
     x: 0,
     y: 0,
     level: 0,
+    faehigkeitA: 0,
+    faehigkeitB: 0,
     baseDamage: 0,
     baseRange: 0,
     baseFireRate: 0,

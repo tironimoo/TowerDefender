@@ -119,6 +119,11 @@ export class Partie {
         klang.ausbauen();
         this.aktualisiereAuswahl();
       },
+      beiFaehigkeit: (towerId, index) => {
+        this.befehl({ type: 'faehigkeit', towerId, index });
+        klang.faehigkeit();
+        this.aktualisiereAuswahl();
+      },
       beiVerkaufen: (towerId) => {
         this.befehl({ type: 'verkaufen', towerId });
         klang.verkaufen();
@@ -210,11 +215,34 @@ export class Partie {
       }
     }
 
+    this.haltMenueAktuell();
     this.kamera.aktualisiere(dtMs / 1000, this.world.tick);
     this.szene.zeichne(this.world, (dtMs / 1000) * this.tempo);
     this.hud.aktualisiere(this.world, jetzt);
     this.ansage.aktualisiere(this.world, jetzt);
     this.zeigeAuswahl();
+  }
+
+  /**
+   * Haelt das offene Menue auf Stand.
+   *
+   * Ohne das bleibt die Ausbautaste gesperrt, bis man das Menue schliesst und
+   * wieder oeffnet, obwohl das Gold laengst da ist.
+   */
+  private haltMenueAktuell(): void {
+    if (!this.schweber.istOffen || this.auswahl === null) return;
+    if (this.auswahl.art !== 'turm') {
+      this.schweber.aktualisiere(this.world, null, null);
+      return;
+    }
+    const tower = this.world.towers.items.find((t) => t.active && t.id === this.auswahl?.index);
+    if (tower === undefined) {
+      this.auswahl = null;
+      this.schweber.verbirg();
+      return;
+    }
+    const def = this.world.content.towers.get(tower.defId) ?? null;
+    this.schweber.aktualisiere(this.world, tower, def);
   }
 
   /** Macht aus Ereignissen Ansagen, Warnungen und Erschuetterungen. */
@@ -235,6 +263,9 @@ export class Partie {
         case 'gegner-durch':
           this.kamera.ruettle(7);
           vibriere('durchbruch', this.optionen.vibration);
+          break;
+        case 'faehigkeit-gelernt':
+          this.hud.zeigeMeldung(`${ereignis.name} · Rang ${ereignis.rang}`);
           break;
         case 'bossphase':
           this.kamera.ruettle(11, 0.45);

@@ -5,7 +5,15 @@
  * Die Simulation kennt weder PixiJS noch Eingabegeraete noch Echtzeit.
  */
 
-export { createWorld, applyCommand, findTower, findEnemy, ausbauKosten } from './core/world';
+export {
+  createWorld,
+  applyCommand,
+  findTower,
+  findEnemy,
+  ausbauKosten,
+  faehigkeitKosten,
+  faehigkeitRang,
+} from './core/world';
 export { step, drainEvents } from './core/step';
 export { createRng } from './core/rng';
 export type { Rng } from './core/rng';

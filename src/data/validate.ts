@@ -35,6 +35,31 @@ export function validateContent(content: Content): string[] {
     if (tower.special.kind === 'aura' && tower.fireRate > 0) {
       problems.push(`${where}: Unterstuetzungstuerme feuern nicht.`);
     }
+    if (tower.faehigkeiten.length !== 2) {
+      problems.push(`${where}: braucht genau zwei Spezialfaehigkeiten.`);
+    }
+    for (const faehigkeit of tower.faehigkeiten) {
+      if (faehigkeit.raenge.length !== 2) {
+        problems.push(`${where}: Faehigkeit ${faehigkeit.id} braucht genau zwei Raenge.`);
+      }
+      if (faehigkeit.kosten.length < faehigkeit.raenge.length) {
+        problems.push(`${where}: Faehigkeit ${faehigkeit.id} hat zu wenige Preise.`);
+      }
+      if (faehigkeit.name === '' || faehigkeit.beschreibung === '') {
+        problems.push(`${where}: Faehigkeit ${faehigkeit.id} ohne Namen oder Beschreibung.`);
+      }
+    }
+  }
+
+  // Kennungen der Faehigkeiten muessen ueber alle Tuerme eindeutig sein.
+  const gesehen = new Set<string>();
+  for (const tower of content.towers.values()) {
+    for (const faehigkeit of tower.faehigkeiten) {
+      if (gesehen.has(faehigkeit.id)) {
+        problems.push(`Faehigkeit doppelt vergeben: ${faehigkeit.id}`);
+      }
+      gesehen.add(faehigkeit.id);
+    }
   }
 
   for (const enemy of content.enemies.values()) {

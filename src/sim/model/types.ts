@@ -141,6 +141,25 @@ export interface AuraEffect {
   readonly aufGegner: boolean;
 }
 
+/**
+ * Eine Spezialfaehigkeit, die ein Turm nach der Hoechststufe erlernen kann.
+ *
+ * Jeder Turm hat zwei davon, und jede laesst sich zweimal steigern. Sie sind
+ * der Goldspeicher fuer die spaete Partie: wenn alle Plaetze belegt und alle
+ * Tuerme voll ausgebaut sind, gibt es sonst nichts mehr zu tun.
+ *
+ * Die Raenge wirken kumulativ: Rang zwei bringt die Wirkung beider Eintraege.
+ */
+export interface FaehigkeitDef {
+  readonly id: string;
+  readonly name: string;
+  readonly beschreibung: string;
+  /** Kosten je Rang, als Anteil des Grundpreises des Turms. */
+  readonly kosten: readonly number[];
+  /** Wirkung je Rang. */
+  readonly raenge: readonly Partial<TurmBonus>[];
+}
+
 export type TowerSpecial =
   | { readonly kind: 'keines' }
   /** Springt auf weitere Ziele, jeder Sprung schwaecher. */
@@ -176,6 +195,8 @@ export interface TowerDef {
   readonly defaultPolicy: TargetPolicy;
   readonly special: TowerSpecial;
   readonly upgrades: readonly TowerUpgradeDef[];
+  /** Genau zwei Spezialfaehigkeiten, verfuegbar ab der Hoechststufe. */
+  readonly faehigkeiten: readonly FaehigkeitDef[];
   /** Ab welcher Forschungsstufe verfuegbar. Null bedeutet von Beginn an. */
   readonly forschung: string | null;
 }
@@ -413,6 +434,9 @@ export interface Tower {
   y: number;
   /** 0 ist die Grundstufe, danach 1 bis 3. */
   level: number;
+  /** Erreichter Rang je Spezialfaehigkeit, null bis zwei. */
+  faehigkeitA: number;
+  faehigkeitB: number;
   /** Grundwerte aus Definition, Ausbau und dauerhaften Boni. */
   baseDamage: number;
   baseRange: number;
@@ -498,6 +522,12 @@ export type SimCommand =
   | { readonly type: 'ausbauen'; readonly towerId: number }
   | { readonly type: 'verkaufen'; readonly towerId: number }
   | { readonly type: 'ziel-setzen'; readonly towerId: number; readonly policy: TargetPolicy }
+  | {
+      readonly type: 'faehigkeit';
+      readonly towerId: number;
+      /** Null oder eins, die beiden Faehigkeiten des Turms. */
+      readonly index: number;
+    }
   | { readonly type: 'welle-starten' };
 
 export type SimEvent =
@@ -546,6 +576,13 @@ export type SimEvent =
       readonly y: number;
     }
   | { readonly type: 'turm-ausgebaut'; readonly towerId: number; readonly level: number }
+  | {
+      readonly type: 'faehigkeit-gelernt';
+      readonly towerId: number;
+      readonly index: number;
+      readonly rang: number;
+      readonly name: string;
+    }
   | { readonly type: 'turm-verkauft'; readonly towerId: number; readonly refund: number }
   | {
       readonly type: 'turm-gestoert';

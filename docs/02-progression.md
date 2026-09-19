@@ -60,6 +60,21 @@ Splitter zurück und ist jederzeit möglich.
 Splitter kommen aus dem erstmaligen Abschluss einer Karte, aus jedem neuen
 Stern und aus dem Endlos-Modus.
 
+## Spezialfähigkeiten
+
+Der letzte Ausbau ist nicht das Ende eines Turms. Danach öffnen sich zwei
+Spezialfähigkeiten, jede in zwei Rängen. Sie kosten das 1,4- und das 2,2-fache
+des Grundpreises und sind damit bewusst teuer: in den späten Wellen soll Gold
+noch irgendwohin fließen können, ohne dass man Plätze zubaut, die es nicht gibt.
+
+Die beiden Fähigkeiten eines Turms ziehen in verschiedene Richtungen — beim
+Armbrustturm etwa Feuerrate gegen Schaden mit Durchschlag. Weil beide steigerbar
+sind, ist das keine endgültige Gabelung, sondern eine Reihenfolge: was zuerst,
+und was bleibt liegen, wenn das Gold nicht für alles reicht.
+
+Gelernte Ränge erscheinen als kleine Edelsteine über dem Turm, damit man eine
+volle Karte lesen kann, ohne jeden Turm einzeln anzutippen.
+
 ## Meisterschaft
 
 Jeder Turm sammelt eigene Erfahrung, und zwar nur, wenn er tatsächlich Schaden

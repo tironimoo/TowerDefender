@@ -13,6 +13,7 @@ zu nennen.
 | Darstellung | PixiJS 8 | schnelle 2D-Grafik über die Grafikkarte |
 | Oberfläche | HTML und CSS über dem Spielfeld | Listen und Menüs sind kein Fall für eine Spiel-Bibliothek |
 | Ton | WebAudio, erzeugt statt abgespielt | keine Tondateien, passt zum eckigen Stil |
+| Musik | drei Stücke, im Browser komponiert (`platform/musik.ts`) | Akkordfolge plus gewürfelte Melodie, wiederholt sich nie wörtlich |
 | Verpackung | Capacitor | dieselbe Codebasis wird zur iOS- und Android-App |
 | Tests | Vitest | läuft ohne Browser, schnell genug für jeden Speichervorgang |
 | Sichtprüfung | Playwright | fährt das Spiel im echten Browser und macht Bilder |
@@ -117,7 +118,7 @@ src/
   ui/         Menüs und Anzeige als HTML über dem Spielfeld
   data/       Türme, Gegner, Wellen, Karten, Mutatoren, Prüfung
   meta/       Spielstand, Forschung, Meisterschaft, Wochenaufgabe
-  platform/   Speicher, Ton, Vibration
+  platform/   Speicher, Ton, Musik, Vibration
   shared/     Mathematik, Objektvorräte
 tools/
   voxel-render/  Modelle zu Sprite-Blättern
@@ -132,6 +133,23 @@ tests/
 Zwei Regeln erzwingt der Linter: `src/sim` darf nichts aus `render`, `ui` oder
 `platform` importieren, und in `src/sim` sind `Math.random` und Echtzeit
 verboten.
+
+## Musik
+
+`platform/musik.ts` spielt keine Dateien ab, sondern komponiert. Jedes der drei
+Stücke besteht aus Tempo, Tonleiter und einer Akkordfolge über vier Takte.
+Bass und Fläche kommen direkt aus dem Akkord, die Melodie wird Takt für Takt
+gewürfelt — aber nur aus Tönen, die zum gerade klingenden Akkord passen, und
+immer in der Nähe des vorigen Tones. So entsteht eine Linie statt einer Folge
+zufälliger Töne, und kein Durchlauf klingt wie der vorige.
+
+Geplant wird im Voraus: alle 200 Millisekunden meldet der Spieler alle Töne an,
+die in den nächsten anderthalb Sekunden beginnen. WebAudio spielt sie dann
+exakt zur richtigen Zeit ab, auch wenn der Bildaufbau gerade stockt. Ohne diesen
+Vorlauf würde die Musik bei jedem Ruckler stolpern.
+
+Beim Start einer Karte wird ein Stück gewählt: meist das der Region, aber nie
+zweimal dasselbe hintereinander.
 
 ## Oberfläche
 
