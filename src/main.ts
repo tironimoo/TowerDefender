@@ -6,6 +6,7 @@
 
 import './ui/stil.css';
 import { Spiel } from '@app/spiel';
+import { meldeDienstarbeiterAn } from '@platform/dienstarbeiter';
 
 async function start(): Promise<void> {
   const spielfeld = document.getElementById('spielfeld');
@@ -29,4 +30,5 @@ async function start(): Promise<void> {
   }
 }
 
+meldeDienstarbeiterAn();
 void start();

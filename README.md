@@ -35,7 +35,26 @@ Handy funktioniert dieselbe Adresse im WLAN.
 
 ## Als App auf das Gerät
 
-### Fertige APK herunterladen
+Es gibt zwei Wege. Der zweite ist der zuverlässigere.
+
+### Weg 1: Im Browser, auf den Startbildschirm gelegt
+
+**<https://tironimoo.github.io/TowerDefender/>**
+
+Die Seite im Browser öffnen, dann im Menü *Zum Startbildschirm hinzufügen*.
+Danach startet das Spiel im Vollbild wie eine App, läuft nach dem ersten
+Aufruf auch ohne Netz, und eine neue Fassung ist beim nächsten Start sofort
+da — dafür sorgt ein Dienstarbeiter (`public/sw.js`), dessen Ablagefach die
+Fassungsnummer im Namen trägt: neue Nummer, neues Fach, alle Dateien frisch.
+
+Dieser Weg hat einen Vorteil, der schwerer wiegt, als er klingt: an einem
+Lesezeichen kommen weder Play Protect noch Google Family Link noch ein
+Fire-Tablet ohne Google Play vorbei. Wo sich eine seitlich installierte App
+nicht halten lässt, funktioniert er trotzdem.
+
+Veröffentlicht wird von `.github/workflows/web.yml` bei jedem Push.
+
+### Weg 2: Fertige APK herunterladen
 
 Die aktuelle Testfassung liegt immer unter derselben Adresse:
 
@@ -101,6 +120,10 @@ Spiel verlangt ohnehin Android 7, deshalb lässt Gradle sie zu Recht weg.)
 ### Selbst bauen
 
 ```bash
+# Webfassung mit Dienstarbeiter, Ergebnis in dist/
+npm run build:web
+
+# Android
 npm run build
 npx cap sync android
 cd android && ./gradlew assembleDebug

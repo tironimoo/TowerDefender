@@ -1,0 +1,100 @@
+# Veroeffentlicht die Webfassung auf GitHub Pages.
+#
+# Der Grund fuer diesen Weg: eine APK laesst sich nicht auf jedes Geraet
+# bringen. Kinderschutz-Dienste wie Family Link und Schutzdienste wie Play
+# Protect entfernen seitlich installierte Apps mitunter wieder, und auf einem
+# Fire-Tablet gibt es Google Play gar nicht. Eine Seite, die man sich auf den
+# Startbildschirm legt, ist davon nicht betroffen.
+#
+# Die Fassungsnummer ist die Baunummer. Sie steckt im Namen des Ablagefachs im
+# Browser: neue Nummer heisst neues Fach, alte Faecher werden geloescht, und
+# damit ist beim naechsten Start alles neu - auch Dateien, deren Name sich
+# nicht geaendert hat.
+
+name: Webfassung veroeffentlichen
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/tower-defence-mobile-concept-som680
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Immer nur eine Veroeffentlichung gleichzeitig, sonst ueberholen sich zwei
+# Baeue und die aeltere Fassung gewinnt.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  bauen:
+    name: Webfassung bauen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quellcode holen
+        uses: actions/checkout@v4
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Abhaengigkeiten installieren
+        run: npm ci
+
+      - name: Pruefungen
+        run: npm run check
+
+      - name: Bauen
+        env:
+          FASSUNG: ${{ github.run_number }}
+        run: npm run build:web
+
+      - name: Ergebnis pruefen
+        run: |
+          set -uo pipefail
+          fehler=0
+          muss() {
+            if [ -e "$2" ]; then echo "  ok       $1"; else echo "  FEHLT    $1 ($2)"; fehler=1; fi
+          }
+          muss "Startseite"        dist/index.html
+          muss "Dienstarbeiter"    dist/sw.js
+          muss "Anwendungsangaben" dist/manifest.webmanifest
+          muss "Symbol"            dist/symbol-512.png
+          muss "Sprite-Blaetter"   dist/atlas/index.json
+          # Der Platzhalter muss ersetzt sein, sonst heisst das Ablagefach
+          # woertlich "__FASSUNG__" und das Update kommt nie an.
+          if grep -q "__FASSUNG__" dist/sw.js; then
+            echo "  FEHLER   Fassungsnummer nicht eingesetzt"; fehler=1
+          else
+            echo "  ok       Fassungsnummer ${{ github.run_number }} eingesetzt"
+            grep -n "const FASSUNG" dist/sw.js
+          fi
+          [ "$fehler" -eq 0 ] || exit 1
+
+      - name: Pages einrichten
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Dateien hochladen
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  veroeffentlichen:
+    name: Veroeffentlichen
+    needs: bauen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - name: Auf Pages schalten
+        id: pages
+        uses: actions/deploy-pages@v4

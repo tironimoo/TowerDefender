@@ -134,6 +134,30 @@ Zwei Regeln erzwingt der Linter: `src/sim` darf nichts aus `render`, `ui` oder
 `platform` importieren, und in `src/sim` sind `Math.random` und Echtzeit
 verboten.
 
+## Webfassung
+
+Dasselbe Spiel läuft auch als Seite, die man sich auf den Startbildschirm
+legt. Das ist kein Nebenprodukt, sondern der Weg, der auf Geräten funktioniert,
+auf denen sich eine seitlich installierte App nicht halten lässt — Family Link
+und Play Protect räumen solche Apps mitunter wieder weg, und Fire-Tablets haben
+gar kein Google Play.
+
+`public/sw.js` ist der Dienstarbeiter dahinter. Sein Ablagefach trägt die
+Fassungsnummer im Namen. Eine neue Fassung heißt damit neues Fach, die alten
+werden beim Aktivieren gelöscht, und dabei werden auch Dateien neu geholt,
+deren Name gleich geblieben ist — die Sprite-Blätter etwa heißen immer gleich.
+Innerhalb einer Fassung wird nur aus dem Fach bedient: schnell und ohne Netz.
+
+`tools/web/pwa.mjs` setzt nach dem Bau die Fassungsnummer und die Dateilisten
+ein. Es liest dabei immer `public/sw.js` als Vorlage, nie sein eigenes
+Ergebnis, damit sich derselbe Bau ein zweites Mal verarbeiten lässt.
+
+Eine Falle, die nur ohne Netz auffällt: der Server schickt `Vary: Origin`, und
+Vite lädt die gebauten Skripte mit `crossorigin`, also mit Origin-Kopfzeile.
+Beim Ablegen hatte die Anfrage keine. Ohne `ignoreVary` findet die Ablage die
+Dateien deshalb nicht wieder, und das Spiel startet ohne Netz nicht — mit Netz
+fällt es nie auf.
+
 ## Musik
 
 `platform/musik.ts` spielt keine Dateien ab, sondern komponiert. Jedes der drei
