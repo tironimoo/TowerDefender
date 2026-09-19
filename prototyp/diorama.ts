@@ -26,6 +26,12 @@ import { alsGruppe, bauform, baueModell, bewege, setzeBauform, setzeKantenbruch,
 import { setzeVerschmelzung } from './glatt';
 import { baueInsel, HOEHE, REGIONEN } from './welt3d';
 import { TiltShiftShader } from './tiltshift';
+import { AbzugShader } from './abzug';
+import { knetWerte, machKnete } from './knete';
+import { baueBedienfeld } from './regler';
+import type { Stimmung } from './regler';
+import { baueHimmel } from './himmel';
+import { baueBodenschatten } from './bodenschatten';
 
 const LEVEL = 'level-01';
 
@@ -40,8 +46,8 @@ interface Stufe {
 }
 const STUFEN: readonly Stufe[] = [
   { name: 'Hoch', schatten: 2048, bluehen: true, tiltShift: true, aufloesung: 2 },
-  { name: 'Mittel', schatten: 1024, bluehen: true, tiltShift: false, aufloesung: 1.5 },
-  { name: 'Sparsam', schatten: 0, bluehen: false, tiltShift: false, aufloesung: 1 },
+  { name: 'Mittel', schatten: 1024, bluehen: true, tiltShift: true, aufloesung: 1.5 },
+  { name: 'Sparsam', schatten: 1024, bluehen: false, tiltShift: false, aufloesung: 1 },
 ];
 
 const gefunden = document.getElementById('buehne');
@@ -67,58 +73,85 @@ renderer.info.autoReset = false;
 wurzel.appendChild(renderer.domElement);
 
 const szene = new THREE.Scene();
-szene.background = new THREE.Color(farben.himmel);
-// Nebel erst weit hinten: er soll den Rand der Insel weich machen, nicht die
-// Insel selbst schlucken.
-szene.fog = new THREE.Fog(farben.nebel, 30, 85);
 
-const kamera = new THREE.PerspectiveCamera(32, 1, 0.5, 200);
+// Hintergrund: ein Farbverlauf statt einer Flaeche. Ein einfarbiger Grund
+// sieht nach leerem Fenster aus; ein Verlauf sieht nach Raum aus, in dem das
+// Modell steht. Er kostet ein Dreieck.
+const himmel = baueHimmel(70);
+szene.add(himmel.netz);
+// Dunst sehr sparsam: er soll die Ferne kuehlen, nicht die Insel schlucken.
+// Zu viel davon ist der haeufigste Grund, warum eine Szene milchig aussieht.
+szene.fog = new THREE.FogExp2(farben.nebel, 0.004);
 
-// Hauptlicht von schraeg hinten: lange Schatten ueber die Karte, das gibt
-// der flachen Insel ueberhaupt erst ein Relief.
+// Nahe und ferne Ebene eng: der Tiefenpuffer ist die Grundlage der
+// Kontaktschatten, und ueber 400 Einheiten verteilt hat er in der Naehe der
+// Insel keine brauchbare Aufloesung mehr. Der Himmel folgt deshalb der
+// Kamera, statt weit hinten zu stehen.
+const kamera = new THREE.PerspectiveCamera(32, 1, 1, 160);
+
+// --- Leuchte -------------------------------------------------------------
+// Drei Lichter, wie auf einem Aufnahmetisch:
+//
+//   Fuehrungslicht  warm, von schraeg vorn oben, wirft die Schatten
+//   Gegenlicht      kuehl, von hinten, zeichnet die Silhouetten nach
+//   Himmelslicht    weich von oben, mit Rueckwurf vom Untergrund
+//
+// Das Gegenlicht ist der Grund, warum die Figuren vor dem Hintergrund
+// stehen statt darin zu kleben. Es wirft bewusst keinen Schatten.
 const sonne = new THREE.DirectionalLight(farben.licht, 3.0);
-sonne.position.set(-14, 20, -10);
 sonne.castShadow = true;
-sonne.shadow.camera.left = -18;
-sonne.shadow.camera.right = 18;
-sonne.shadow.camera.top = 18;
-sonne.shadow.camera.bottom = -18;
-sonne.shadow.camera.far = 60;
-sonne.shadow.bias = -0.0015;
+sonne.shadow.camera.left = -20;
+sonne.shadow.camera.right = 20;
+sonne.shadow.camera.top = 20;
+sonne.shadow.camera.bottom = -20;
+sonne.shadow.camera.far = 80;
+sonne.shadow.bias = -0.0012;
+sonne.shadow.normalBias = 0.02;
 szene.add(sonne);
-// Fuelllicht von oben und unten. Ohne das versinkt alles, was im Schatten der
-// Sonne liegt, in Schwarz - und dunkle Gegner auf dunklem Weg sieht dann
-// niemand mehr.
-szene.add(new THREE.HemisphereLight(farben.fuellicht, farben.sockel, 2.2));
-// Gegenlicht von der anderen Seite: zeichnet Kanten nach und loest die
-// Figuren vom Hintergrund.
-const gegenlicht = new THREE.DirectionalLight(farben.fuellicht, 1.1);
-gegenlicht.position.set(16, 9, 14);
+
+const gegenlicht = new THREE.DirectionalLight(farben.fuellicht, 1.6);
+gegenlicht.position.set(16, 7, 14);
 szene.add(gegenlicht);
 
-// MeshStandardMaterial statt Lambert: erst ein Glanzlicht macht aus einer
-// Flaeche ein Material. Matt und leicht rau - poliert wuerde nach Plastik
-// aussehen, und darum geht es hier gerade nicht.
-const materialFest = new THREE.MeshStandardMaterial({
-  vertexColors: true,
-  roughness: 0.72,
-  metalness: 0.06,
-});
+const himmelslicht = new THREE.HemisphereLight(farben.fuellicht, farben.sockel, 2.2);
+szene.add(himmelslicht);
+
+// Stand der Sonne, als Winkel. Zwei Regler statt drei Koordinaten: so laesst
+// sich der Schattenwurf suchen, ohne ueber Vektoren nachzudenken.
+const sonnenStand = { richtung: 2.4, hoehe: 0.85 };
+function setzeSonne(): void {
+  const r = 26;
+  sonne.position.set(
+    Math.cos(sonnenStand.richtung) * Math.cos(sonnenStand.hoehe) * r,
+    Math.sin(sonnenStand.hoehe) * r,
+    Math.sin(sonnenStand.richtung) * Math.cos(sonnenStand.hoehe) * r,
+  );
+}
+setzeSonne();
+
+// --- Knetmaterial ----------------------------------------------------------
+// Sehr rau und ohne Metallanteil. Knete glaenzt nur breit und stumpf; jeder
+// scharfe Glanzpunkt wuerde sie sofort zu Kunststoff machen.
+const materialFest = machKnete(
+  new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94, metalness: 0.0 }),
+);
 const materialLeuchtend = new THREE.MeshBasicMaterial({ vertexColors: true });
 const materialien = { fest: materialFest, leuchtend: materialLeuchtend };
 
-// Gegner bekommen ein eigenes Material mit etwas Eigenleuchten. Nicht aus
-// Effekthascherei: nachts auf dunklem Weg verschwinden dunkle Figuren sonst
-// im Untergrund, und ein Gegner, den man nicht sieht, ist ein Fehler im
+// Gegner bekommen dasselbe Material mit einem Hauch Eigenleuchten. Nicht aus
+// Effekthascherei: in einer dunklen Stimmung verschwinden dunkle Figuren
+// sonst im Untergrund, und ein Gegner, den man nicht sieht, ist ein Fehler im
 // Spiel und nicht im Bild.
 const materialienGegner = {
-  fest: new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    roughness: 0.6,
-    metalness: 0.05,
-    emissive: new THREE.Color(0x2a3a4a),
-    emissiveIntensity: 0.9,
-  }),
+  fest: machKnete(
+    new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.88,
+      metalness: 0.0,
+      emissive: new THREE.Color(0x24313f),
+      emissiveIntensity: 0.55,
+    }),
+  ),
   leuchtend: materialLeuchtend,
 };
 
@@ -150,6 +183,29 @@ for (const [id, m] of Object.entries(roh.modelle)) modelle.set(id, baueModell(m)
 // --- Insel -----------------------------------------------------------------
 const insel = baueInsel(level, modelle, materialien);
 szene.add(insel.gruppe);
+
+// --- Fackellicht -----------------------------------------------------------
+// Die Fackeln haben bisher nur geleuchtet, ohne zu leuchten: selbstleuchtende
+// Kaesten, die nichts beschienen haben. Nachts blieb die Insel deshalb
+// schwarz, obwohl ueberall Feuer stand.
+//
+// Ein paar Punktlichter loesen das. Bewusst nur die naechsten sechs - jedes
+// weitere kostet einen Durchgang je Flaeche, und mehr als sechs Lichtkreise
+// sieht auf einer Karte dieser Groesse ohnehin niemand.
+const fackeln = level.props.filter((prop) => prop.model === 'prop_fackel').slice(0, 6);
+const fackelLichter = fackeln.map((prop) => {
+  const licht = new THREE.PointLight(0xffb060, 0, 7, 1.7);
+  licht.position.set(prop.x, HOEHE.boden + 0.95, prop.y);
+  szene.add(licht);
+  return licht;
+});
+function setzeFackeln(staerke: number): void {
+  for (const licht of fackelLichter) licht.intensity = staerke;
+}
+
+// Ein Fleck je Turm, je Requisite und je Gegner, mit Luft nach oben.
+const bodenschatten = baueBodenschatten(400);
+szene.add(bodenschatten.netz);
 
 // Sternenstaub, damit die Insel nicht im Nichts klebt.
 const staubZahl = 400;
@@ -207,6 +263,21 @@ for (const turm of world.towers.items) {
   turmBilder.set(turm.id, { gruppe, teile });
 }
 
+// Flecken fuer alles, was stehen bleibt. Sie werden einmal gesetzt; die
+// Gegner haengen sich weiter hinten dahinter.
+let festeFlecken = 0;
+for (const prop of level.props) {
+  const bau = modelle.get(prop.model);
+  if (bau === undefined) continue;
+  // Breite aus der Hoehe geschaetzt: ein Baum wirft einen groesseren Fleck
+  // als ein Stein, und die Hoehe ist die Angabe, die jedes Modell hat.
+  bodenschatten.setze(festeFlecken++, prop.x, HOEHE.boden + 0.012, prop.y, 0.55 + bau.hoehe * 0.42);
+}
+for (const turm of world.towers.items) {
+  if (!turm.active) continue;
+  bodenschatten.setze(festeFlecken++, turm.x, HOEHE.boden + 0.012, turm.y, 1.05);
+}
+
 // --- Gegner und Geschosse --------------------------------------------------
 const gegnerBilder = new Map<number, Aufbau>();
 const geschossBilder = new Map<number, THREE.Object3D>();
@@ -245,14 +316,30 @@ szene.add(sonne.target);
 let stufe: Stufe = STUFEN[0] as Stufe;
 const komponist = new EffectComposer(renderer);
 const renderDurchgang = new RenderPass(szene, kamera);
-const bluehen = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.65, 0.55, 0.22);
-// Drei Pixel Unschaerfe sieht niemand. Der Unterschied zwischen "Hoch" und
-// "Mittel" war deshalb unsichtbar - und damit war die Stufe wertlos.
+
+// Zu den Kontaktschatten: erst stand hier ein GTAO-Durchgang im Bildraum.
+// Er hat in diesem Aufbau messbar nichts geliefert - die Abschattung kam
+// weiss heraus, bei jeder Einstellung. Statt ihn weiter zu suchen, sitzt die
+// Abschattung jetzt an zwei Stellen, an denen sie ohnehin besser aufgehoben
+// ist: in den Modellen gebacken (siehe glatt.ts) und als weicher Fleck unter
+// jedem Koerper (siehe bodenschatten.ts). Beides kostet zur Laufzeit nichts,
+// und eine Welt, die fast stillsteht, muss so etwas nicht sechzig Mal in der
+// Sekunde neu rechnen.
+
+const bluehen = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.35, 0.6, 0.55);
 const tiltWaagerecht = new ShaderPass(TiltShiftShader);
 const tiltSenkrecht = new ShaderPass(TiltShiftShader);
 const senkrechtWert = tiltSenkrecht.uniforms['senkrecht'];
 if (senkrechtWert !== undefined) senkrechtWert.value = 1;
+const abzug = new ShaderPass(AbzugShader);
 const ausgabe = new OutputPass();
+
+/** Greift ein Uniform eines Durchgangs, ohne bei Tippfehlern still zu werden. */
+function feld(durchgang: ShaderPass, name: string): { value: number } {
+  const u = durchgang.uniforms[name] as { value: number } | undefined;
+  if (u === undefined) throw new Error(`Uniform ${name} fehlt.`);
+  return u;
+}
 
 function baueKette(): void {
   komponist.passes.length = 0;
@@ -262,6 +349,7 @@ function baueKette(): void {
     komponist.addPass(tiltWaagerecht);
     komponist.addPass(tiltSenkrecht);
   }
+  komponist.addPass(abzug);
   komponist.addPass(ausgabe);
 }
 
@@ -290,13 +378,153 @@ function passeGroesseAn(): void {
   kamera.updateProjectionMatrix();
   bluehen.resolution.set(b, h);
   for (const p of [tiltWaagerecht, tiltSenkrecht]) {
-    const feld = p.uniforms['aufloesung'] as { value: THREE.Vector2 } | undefined;
-    feld?.value.set(b * dpr, h * dpr);
+    const u = p.uniforms['aufloesung'] as { value: THREE.Vector2 } | undefined;
+    u?.value.set(b * dpr, h * dpr);
   }
 }
 window.addEventListener('resize', passeGroesseAn);
 setzeStufe(STUFEN[0] as Stufe);
 setzeKamera();
+
+// --- Stimmungen ------------------------------------------------------------
+// Jede Stimmung ist eine Behauptung darueber, wie das Spiel aussehen koennte.
+// Nebeneinander auf Tasten beantworten sie die Stilfrage schneller als jede
+// Beschreibung.
+function stelleSzene(
+  himmelOben: string,
+  himmelUnten: string,
+  schimmer: string,
+  nebel: string,
+  sonnenFarbe: string,
+  gegenFarbe: string,
+  himmelFarbe: string,
+  bodenFarbe: string,
+  saum: string,
+): void {
+  himmel.setze(himmelOben, himmelUnten, schimmer);
+  (szene.fog as THREE.FogExp2).color.set(nebel);
+  sonne.color.set(sonnenFarbe);
+  gegenlicht.color.set(gegenFarbe);
+  himmelslicht.color.set(himmelFarbe);
+  himmelslicht.groundColor.set(bodenFarbe);
+  knetWerte.randFarbe.value.set(saum);
+}
+
+const STIMMUNGEN: readonly Stimmung[] = [
+  {
+    name: 'Werkbank',
+    dann: () => {
+      stelleSzene('#6d89a8', '#c2a883', '#e8d5b4', '#93a6a8', '#fff2dc', '#9dc4ee', '#cfe2f5', '#8a7256', '#ff9e6a');
+      sonnenStand.richtung = 2.35;
+      sonnenStand.hoehe = 0.78;
+      setzeSonne();
+    },
+    werte: {
+      belichtung: 1.05, sonne: 3.0, gegenlicht: 1.5, himmelslicht: 2.9,
+      fackeln: 1.5, kontakt: 0.62, kehlen: 1.0, dunst: 0.004, korn: 0.7, beulen: 0.5, randlicht: 0.3,
+      bluehen: 0.12, unschaerfe: 13, koernung: 0.05, abschattung: 0.3,
+      saettigung: 0.94, toenung: 0.22,
+    },
+  },
+  {
+    name: 'Abendsonne',
+    dann: () => {
+      stelleSzene('#131f4a', '#2e1c30', '#ff9a4e', '#3a2a42', '#ffc68a', '#6f92e0', '#9aa8d8', '#5a3c30', '#ff8a52');
+      sonnenStand.richtung = 0.9;
+      sonnenStand.hoehe = 0.3;
+      setzeSonne();
+    },
+    werte: {
+      belichtung: 1.15, sonne: 5.0, gegenlicht: 1.9, himmelslicht: 2.2,
+      fackeln: 5.0, kontakt: 0.5, kehlen: 0.95, dunst: 0.005, korn: 0.6, beulen: 0.45, randlicht: 0.5,
+      bluehen: 0.3, unschaerfe: 15, koernung: 0.05, abschattung: 0.42,
+      saettigung: 1.02, toenung: 0.34,
+    },
+  },
+  {
+    name: 'Nachtlager',
+    dann: () => {
+      stelleSzene('#060a12', '#101c28', '#33506b', '#0a1118', '#ffd9a8', '#4e7ab4', '#3c5c80', '#141c26', '#ffb070');
+      sonnenStand.richtung = 2.1;
+      sonnenStand.hoehe = 0.95;
+      setzeSonne();
+    },
+    werte: {
+      belichtung: 1.5, sonne: 1.9, gegenlicht: 2.2, himmelslicht: 3.2,
+      fackeln: 11.0, kontakt: 0.5, kehlen: 0.85, dunst: 0.007, korn: 0.5, beulen: 0.4, randlicht: 0.55,
+      bluehen: 0.7, unschaerfe: 12, koernung: 0.07, abschattung: 0.5,
+      saettigung: 1.02, toenung: 0.3,
+    },
+  },
+  {
+    name: 'Schaukasten',
+    dann: () => {
+      stelleSzene('#141c26', '#232d38', '#6b8096', '#1a222c', '#ffffff', '#cfe4ff', '#dce8f4', '#39424c', '#ffd2b0');
+      sonnenStand.richtung = 2.6;
+      sonnenStand.hoehe = 1.1;
+      setzeSonne();
+    },
+    werte: {
+      belichtung: 1.0, sonne: 2.8, gegenlicht: 2.0, himmelslicht: 2.6,
+      fackeln: 0.0, kontakt: 0.7, kehlen: 1.25, dunst: 0.002, korn: 0.8, beulen: 0.6, randlicht: 0.22,
+      bluehen: 0.1, unschaerfe: 18, koernung: 0.035, abschattung: 0.38,
+      saettigung: 0.9, toenung: 0.08,
+    },
+  },
+];
+
+// --- Regler ----------------------------------------------------------------
+const prozent = (w: number): string => `${Math.round(w * 100)}%`;
+const bedienfeld = baueBedienfeld(
+  document.body,
+  [
+    {
+      name: 'Knete',
+      regler: [
+        { id: 'korn', name: 'Daumenabdruecke', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.korn.value, zeige: prozent, setze: (w) => { knetWerte.korn.value = w; } },
+        { id: 'beulen', name: 'Beulen', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.beulen.value, zeige: prozent, setze: (w) => { knetWerte.beulen.value = w; } },
+        { id: 'feinheit', name: 'Koernung', von: 6, bis: 60, schritt: 1, wert: knetWerte.kornFeinheit.value, zeige: (w) => w.toFixed(0), setze: (w) => { knetWerte.kornFeinheit.value = w; } },
+        { id: 'randlicht', name: 'Durchscheinen', von: 0, bis: 1.2, schritt: 0.05, wert: knetWerte.rand.value, zeige: prozent, setze: (w) => { knetWerte.rand.value = w; } },
+        { id: 'rauheit', name: 'Mattheit', von: 0.2, bis: 1, schritt: 0.02, wert: materialFest.roughness, zeige: prozent, setze: (w) => { materialFest.roughness = w; materialienGegner.fest.roughness = w; } },
+      ],
+    },
+    {
+      name: 'Licht',
+      regler: [
+        { id: 'belichtung', name: 'Belichtung', von: 0.4, bis: 2.4, schritt: 0.05, wert: renderer.toneMappingExposure, setze: (w) => { renderer.toneMappingExposure = w; } },
+        { id: 'sonne', name: 'Fuehrungslicht', von: 0, bis: 6, schritt: 0.1, wert: sonne.intensity, setze: (w) => { sonne.intensity = w; } },
+        { id: 'gegenlicht', name: 'Gegenlicht', von: 0, bis: 4, schritt: 0.1, wert: gegenlicht.intensity, setze: (w) => { gegenlicht.intensity = w; } },
+        { id: 'himmelslicht', name: 'Himmelslicht', von: 0, bis: 4, schritt: 0.1, wert: himmelslicht.intensity, setze: (w) => { himmelslicht.intensity = w; } },
+        { id: 'fackeln', name: 'Fackelschein', von: 0, bis: 14, schritt: 0.2, wert: 0, zeige: (w) => w.toFixed(1), setze: setzeFackeln },
+        { id: 'sonnenrichtung', name: 'Sonnenrichtung', von: 0, bis: 6.28, schritt: 0.02, wert: sonnenStand.richtung, zeige: (w) => `${Math.round((w * 180) / Math.PI)}\u00b0`, setze: (w) => { sonnenStand.richtung = w; setzeSonne(); } },
+        { id: 'sonnenhoehe', name: 'Sonnenhoehe', von: 0.08, bis: 1.4, schritt: 0.02, wert: sonnenStand.hoehe, zeige: (w) => `${Math.round((w * 180) / Math.PI)}\u00b0`, setze: (w) => { sonnenStand.hoehe = w; setzeSonne(); } },
+        { id: 'kehlen', name: 'Kehlschatten', von: 0, bis: 1.6, schritt: 0.05, wert: knetWerte.kehle.value, zeige: prozent, setze: (w) => { knetWerte.kehle.value = w; } },
+        { id: 'kontakt', name: 'Bodenschatten', von: 0, bis: 1, schritt: 0.02, wert: bodenschatten.material.opacity, zeige: prozent, setze: (w) => { bodenschatten.material.opacity = w; } },
+        { id: 'dunst', name: 'Dunst', von: 0, bis: 0.02, schritt: 0.0005, wert: 0.004, zeige: (w) => `${(w * 1000).toFixed(1)}`, setze: (w) => { (szene.fog as THREE.FogExp2).density = w; } },
+      ],
+    },
+    {
+      name: 'Objektiv',
+      regler: [
+        { id: 'unschaerfe', name: 'Tilt-Shift', von: 0, bis: 30, schritt: 1, wert: feld(tiltWaagerecht, 'staerke').value, zeige: (w) => `${w.toFixed(0)} px`, setze: (w) => { feld(tiltWaagerecht, 'staerke').value = w; feld(tiltSenkrecht, 'staerke').value = w; } },
+        { id: 'schaerfeband', name: 'Schaerfeband', von: 0.05, bis: 0.6, schritt: 0.01, wert: feld(tiltWaagerecht, 'breite').value, zeige: prozent, setze: (w) => { feld(tiltWaagerecht, 'breite').value = w; feld(tiltSenkrecht, 'breite').value = w; } },
+        { id: 'bluehen', name: 'Leuchten', von: 0, bis: 1.6, schritt: 0.05, wert: bluehen.strength, zeige: prozent, setze: (w) => { bluehen.strength = w; } },
+        { id: 'koernung', name: 'Filmkorn', von: 0, bis: 0.4, schritt: 0.01, wert: feld(abzug, 'koernung').value, zeige: prozent, setze: (w) => { feld(abzug, 'koernung').value = w; } },
+        { id: 'abschattung', name: 'Randabschattung', von: 0, bis: 1.0, schritt: 0.05, wert: feld(abzug, 'abschattung').value, zeige: prozent, setze: (w) => { feld(abzug, 'abschattung').value = w; } },
+        { id: 'saettigung', name: 'Saettigung', von: 0.3, bis: 1.8, schritt: 0.02, wert: feld(abzug, 'saettigung').value, zeige: prozent, setze: (w) => { feld(abzug, 'saettigung').value = w; } },
+        { id: 'toenung', name: 'Farbstimmung', von: 0, bis: 0.8, schritt: 0.02, wert: feld(abzug, 'toenung').value, zeige: prozent, setze: (w) => { feld(abzug, 'toenung').value = w; } },
+      ],
+    },
+  ],
+  STIMMUNGEN,
+);
+// Mit der ersten Stimmung anfangen, damit Bild und Regler von Anfang an
+// dasselbe sagen.
+const erste = STIMMUNGEN[0];
+if (erste !== undefined) {
+  erste.dann?.();
+  bedienfeld.uebernimm(erste.werte);
+}
 
 // --- Bedienung -------------------------------------------------------------
 const zeiger = new Map<number, { x: number; y: number }>();
@@ -393,9 +621,11 @@ function bild(): void {
 
   // Gegner
   const lebende = new Set<number>();
+  let flecken = festeFlecken;
   for (const enemy of world.enemies.items) {
     if (!enemy.active) continue;
     lebende.add(enemy.id);
+    bodenschatten.setze(flecken++, enemy.x, HOEHE.weg + 0.012, enemy.y, 0.75);
     const bild = gegnerBild(enemy);
     if (bild === null) continue;
     bild.gruppe.position.set(enemy.x, HOEHE.weg, enemy.y);
@@ -404,6 +634,7 @@ function bild(): void {
     // hat als NaN die ganze Drehmatrix vergiftet.
     bewege(bild.teile, zeit, 6 * Math.max(0.2, enemy.baseSpeed));
   }
+  bodenschatten.zeige(flecken);
   for (const [id, bild] of gegnerBilder) {
     if (lebende.has(id)) continue;
     szene.remove(bild.gruppe);
@@ -441,7 +672,9 @@ function bild(): void {
     geschossBilder.delete(id);
   }
 
+  himmel.netz.position.copy(kamera.position);
   staub.rotation.y = zeit * 0.01;
+  feld(abzug, 'zeit').value = zeit;
   // Vor der Nachbearbeitung ablesen: nach komponist.render() steht im Zaehler
   // nur noch der letzte Durchgang, und das ist ein Vollbild-Viereck.
   renderer.info.reset();

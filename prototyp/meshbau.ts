@@ -142,7 +142,16 @@ export function verschmelze(
   // Ohne Texturen braucht niemand die uv-Koordinaten, und ohne sie passen
   // Quader und geschliffene Huellen zusammen. mergeGeometries verlangt
   // ausserdem, dass entweder alle oder keine Geometrie einen Index hat.
-  for (const g of geometrien) g.deleteAttribute('uv');
+  for (const g of geometrien) {
+    g.deleteAttribute('uv');
+    // Quader haben keine gebackene Abschattung. Damit sie sich trotzdem mit
+    // geschliffenen Huellen verschmelzen lassen, bekommen sie den neutralen
+    // Wert - sonst faellt mergeGeometries wieder auf null zurueck.
+    if (g.getAttribute('abschattung') === undefined) {
+      const anzahl = g.attributes['position']?.count ?? 0;
+      g.setAttribute('abschattung', new THREE.BufferAttribute(new Float32Array(anzahl).fill(1), 1));
+    }
+  }
   const alleIndiziert = geometrien.every((g) => g.index !== null);
   const gleich = alleIndiziert
     ? (geometrien as THREE.BufferGeometry[])

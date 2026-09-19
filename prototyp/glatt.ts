@@ -64,6 +64,91 @@ function weichesMin(a: number, b: number, k: number): number {
   return Math.min(a, b) - h * h * k * 0.25;
 }
 
+/** Feldwert an einem Punkt, direkt gegen die Kaesten gerechnet. */
+function feldAn(x: number, y: number, z: number, kaesten: readonly RohKasten[]): number {
+  let d = Infinity;
+  for (const k of kaesten) d = weichesMin(d, kastenAbstand(x, y, z, k), verschmelzung);
+  return d;
+}
+
+/**
+ * Normalen aus dem Gefaelle des Feldes.
+ *
+ * Der uebliche Weg waere computeVertexNormals - der nimmt die Drehrichtung
+ * der Dreiecke als Wahrheit. Beim ersten Anlauf zeigten die Normalen dadurch
+ * nach innen, und jede Figur wurde schwarz, weil das Licht sie von der
+ * falschen Seite traf.
+ *
+ * Das Feld weiss es besser: es faellt immer von aussen nach innen ab. Aus
+ * seinem Gefaelle kommt die Normale ohne jede Annahme ueber die Drehrichtung
+ * - und sie ist ausserdem glatter, weil sie nicht aus Dreiecksflaechen
+ * gemittelt wird.
+ */
+function baueNormalen(kaesten: readonly RohKasten[], punkte: readonly number[]): Float32Array {
+  const aus = new Float32Array(punkte.length);
+  const e = 0.12;
+  for (let i = 0; i < punkte.length; i += 3) {
+    const x = punkte[i] ?? 0;
+    const y = punkte[i + 1] ?? 0;
+    const z = punkte[i + 2] ?? 0;
+    let nx2 = feldAn(x + e, y, z, kaesten) - feldAn(x - e, y, z, kaesten);
+    let ny2 = feldAn(x, y + e, z, kaesten) - feldAn(x, y - e, z, kaesten);
+    let nz2 = feldAn(x, y, z + e, kaesten) - feldAn(x, y, z - e, kaesten);
+    const laenge = Math.hypot(nx2, ny2, nz2) || 1;
+    nx2 /= laenge;
+    ny2 /= laenge;
+    nz2 /= laenge;
+    aus[i] = nx2;
+    aus[i + 1] = ny2;
+    aus[i + 2] = nz2;
+  }
+  return aus;
+}
+
+/**
+ * Abschattung aus dem Abstandsfeld.
+ *
+ * Fuer jede Ecke wird ein Stueck weit entlang der Normalen nach aussen
+ * getastet. Steht dort weniger Luft, als der zurueckgelegte Weg lang war,
+ * liegt Material im Weg - die Stelle ist eine Kehle und bekommt Schatten.
+ *
+ * Das ist derselbe Gedanke wie beim Kontaktschatten im Bildraum, nur einmal
+ * beim Bauen gerechnet statt sechzig Mal in der Sekunde. Fuer eine Welt, die
+ * fast vollstaendig stillsteht, ist das der richtige Ort dafuer.
+ *
+ * Getastet wird direkt gegen die Kaesten, nicht gegen das Gitter: die
+ * Tastweiten reichen weiter als der Rand des Gitters, und dort wuerde ein
+ * geklemmter Gitterwert Material vortaeuschen, wo nur Luft ist. Genau das
+ * hat beim ersten Anlauf jede Figur schwarz werden lassen.
+ */
+function baueAbschattung(
+  kaesten: readonly RohKasten[],
+  lagen: readonly number[],
+  normalen: ArrayLike<number>,
+): Float32Array {
+  const aus = new Float32Array(lagen.length / 3);
+  const WEITEN = [0.45, 1.0, 1.9, 3.1];
+  for (let i = 0; i < aus.length; i++) {
+    const px = lagen[i * 3] ?? 0;
+    const py = lagen[i * 3 + 1] ?? 0;
+    const pz = lagen[i * 3 + 2] ?? 0;
+    const nx2 = normalen[i * 3] ?? 0;
+    const ny2 = normalen[i * 3 + 1] ?? 0;
+    const nz2 = normalen[i * 3 + 2] ?? 0;
+    let summe = 0;
+    let gewicht = 1;
+    let gesamt = 0;
+    for (const d of WEITEN) {
+      const frei = feldAn(px + nx2 * d, py + ny2 * d, pz + nz2 * d, kaesten);
+      summe += (Math.max(0, d - frei) / d) * gewicht;
+      gesamt += gewicht;
+      gewicht *= 0.6;
+    }
+    aus[i] = Math.max(0, Math.min(1, 1 - (summe / gesamt) * 1.1));
+  }
+  return aus;
+}
+
 interface Feld {
   readonly werte: Float32Array;
   readonly nx: number;
@@ -138,6 +223,36 @@ const ECKEN: readonly (readonly [number, number, number])[] = [
 ];
 
 const streufarbe = new THREE.Color();
+
+/**
+ * Stimmt die Drehrichtung der Dreiecke mit den Normalen ueberein?
+ *
+ * Gibt die Summe ueber eine Stichprobe zurueck: positiv heisst ja.
+ */
+function pruefeDrehsinn(
+  punkte: readonly number[],
+  normalen: Float32Array,
+  dreiecke: readonly number[],
+): number {
+  let summe = 0;
+  const schritt = Math.max(3, Math.floor(dreiecke.length / 60 / 3) * 3);
+  for (let i = 0; i + 2 < dreiecke.length; i += schritt) {
+    const a = (dreiecke[i] ?? 0) * 3;
+    const b = (dreiecke[i + 1] ?? 0) * 3;
+    const c = (dreiecke[i + 2] ?? 0) * 3;
+    const ux = (punkte[b] ?? 0) - (punkte[a] ?? 0);
+    const uy = (punkte[b + 1] ?? 0) - (punkte[a + 1] ?? 0);
+    const uz = (punkte[b + 2] ?? 0) - (punkte[a + 2] ?? 0);
+    const vx = (punkte[c] ?? 0) - (punkte[a] ?? 0);
+    const vy = (punkte[c + 1] ?? 0) - (punkte[a + 1] ?? 0);
+    const vz = (punkte[c + 2] ?? 0) - (punkte[a + 2] ?? 0);
+    const gx = uy * vz - uz * vy;
+    const gy = uz * vx - ux * vz;
+    const gz = ux * vy - uy * vx;
+    summe += gx * (normalen[a] ?? 0) + gy * (normalen[a + 1] ?? 0) + gz * (normalen[a + 2] ?? 0);
+  }
+  return summe;
+}
 
 /**
  * Zieht eine Huelle um die Kaesten und gibt sie als Geometrie zurueck.
@@ -266,10 +381,27 @@ export function baueHuelle(kaesten: readonly RohKasten[]): THREE.BufferGeometry 
   }
   geometrie.setAttribute('position', new THREE.BufferAttribute(lagen, 3));
   geometrie.setAttribute('color', new THREE.BufferAttribute(farben, 3));
+  const normalen = baueNormalen(kaesten, punkte);
+
+  // Die Drehrichtung der Dreiecke an die Normalen angleichen, sonst wird die
+  // sichtbare Seite weggeschnitten. Eine Probe reicht: falsch ist sie fuer
+  // alle oder fuer keines.
+  const probe = pruefeDrehsinn(punkte, normalen, dreiecke);
+  if (probe < 0) {
+    for (let i = 0; i < dreiecke.length; i += 3) {
+      const b = dreiecke[i + 1] as number;
+      dreiecke[i + 1] = dreiecke[i + 2] as number;
+      dreiecke[i + 2] = b;
+    }
+  }
   geometrie.setIndex(dreiecke);
   // Indiziert lassen: die geteilten Ecken sind es, die weiche Normalen und
   // damit den geschliffenen Eindruck ergeben - und sie sparen das Sechsfache
   // an Daten.
-  geometrie.computeVertexNormals();
+  geometrie.setAttribute('normal', new THREE.BufferAttribute(normalen, 3));
+  geometrie.setAttribute(
+    'abschattung',
+    new THREE.BufferAttribute(baueAbschattung(kaesten, punkte, normalen), 1),
+  );
   return geometrie;
 }
