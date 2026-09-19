@@ -4,9 +4,11 @@
 # Hand starten. Das Ergebnis haengt als Datei an einer Veroeffentlichung, damit
 # es sich direkt auf dem Handy herunterladen laesst.
 #
-# Die APK ist eine Testfassung. Sie ist mit dem Standardschluessel von Android
-# signiert, laesst sich also ohne Konto installieren und bei jedem neuen Bau
-# ueber die alte druebersetzen.
+# Die APK ist eine Testfassung und wird mit dem festen Schluessel aus
+# android/schluessel signiert. Der muss fest sein: sonst legt Gradle auf jedem
+# Laeufer einen neuen an, und Android verweigert das Update, weil die Signatur
+# nicht zur installierten App passt. Die Baunummer wird als versionCode
+# durchgereicht, damit jede Fassung neuer ist als die vorige.
 
 name: APK bauen
 
@@ -71,7 +73,25 @@ jobs:
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace \
+            -PversionCode=${{ github.run_number }} \
+            -PversionName=1.0.${{ github.run_number }}
+
+      # Ein falsch signierter Bau faellt sonst erst auf dem Handy auf, und dann
+      # steht man vor einem Update, das sich nicht installieren laesst.
+      - name: Signatur pruefen
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -n 1)"
+          "$APKSIGNER" verify --print-certs \
+            android/app/build/outputs/apk/debug/app-debug.apk | tee signatur.txt
+          ERWARTET="$(keytool -list -keystore android/schluessel/towerdefender.keystore \
+            -storepass towerdefender -alias towerdefender \
+            | grep -oE '([0-9A-F]{2}:){31}[0-9A-F]{2}' | tr -d ':' | tr 'A-F' 'a-f')"
+          GEFUNDEN="$(grep -i 'SHA-256 digest' signatur.txt | head -n 1 | awk '{print $NF}')"
+          echo "erwartet:  $ERWARTET"
+          echo "gefunden:  $GEFUNDEN"
+          test "$ERWARTET" = "$GEFUNDEN"
 
       - name: APK umbenennen
         id: apk
@@ -97,6 +117,8 @@ jobs:
           gh release delete apk-latest --yes --cleanup-tag || true
           gh release create apk-latest \
             --title "TowerDefender APK" \
-            --notes "Testfassung, Bau ${{ github.run_number }}. Zum Installieren auf dem Handy herunterladen und die Installation aus unbekannter Quelle einmalig erlauben." \
+            --notes "Testfassung, Bau ${{ github.run_number }} (Version 1.0.${{ github.run_number }}). Zum Installieren auf dem Handy herunterladen und die Installation aus unbekannter Quelle einmalig erlauben.
+
+Bruch mit Bau 1 bis 4: diese Fassungen waren mit jeweils neu erzeugten Schluesseln signiert, ein Update darauf ist technisch nicht moeglich. Einmalig die alte App deinstallieren, dann diese installieren. Ab hier laufen Updates normal durch." \
             --target "${{ github.sha }}" \
             "${{ steps.apk.outputs.pfad }}"

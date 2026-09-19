@@ -3,12 +3,27 @@ apply plugin: 'com.android.application'
 android {
     namespace = "de.towerdefender.spiel"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    // Fester Signaturschluessel. Ohne ihn erzeugt Gradle auf jedem Bau-Laeufer
+    // einen neuen, und Android verweigert dann jedes Update, weil die Signatur
+    // nicht zur installierten App passt. Siehe schluessel/LIESMICH.md.
+    signingConfigs {
+        debug {
+            storeFile file('../schluessel/towerdefender.keystore')
+            storePassword 'towerdefender'
+            keyAlias 'towerdefender'
+            keyPassword 'towerdefender'
+        }
+    }
+
     defaultConfig {
         applicationId "de.towerdefender.spiel"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        // Jede Fassung braucht eine hoehere Nummer als die installierte, sonst
+        // gilt sie als Rueckschritt. Der Bauauftrag reicht die Baunummer durch.
+        versionCode project.hasProperty('versionCode') ? project.versionCode.toInteger() : 1
+        versionName project.hasProperty('versionName') ? project.versionName : "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -17,9 +32,13 @@ android {
         }
     }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
 }

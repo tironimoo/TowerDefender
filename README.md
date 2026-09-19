@@ -42,13 +42,26 @@ Die aktuelle Testfassung liegt immer unter derselben Adresse:
 **<https://github.com/tironimoo/TowerDefender/releases/tag/apk-latest>**
 
 Auf dem Handy herunterladen, antippen und die Installation aus unbekannter
-Quelle einmalig erlauben. Die APK ist mit dem Standardschlüssel von Android
-signiert, ein neuer Bau lässt sich also über den alten drüber installieren,
-ohne den Spielstand zu verlieren.
+Quelle einmalig erlauben.
+
+> **Einmalig nötig, wenn du Bau 1 bis 4 installiert hast:** diese Fassungen
+> wurden bei jedem Bau mit einem neu erzeugten Schlüssel signiert. Android
+> erlaubt ein Update nur bei gleicher Signatur, das Update bricht dort also
+> ab. Alte App einmal deinstallieren, dann die neue installieren. Der
+> Spielstand geht dabei verloren — leider unvermeidbar, ein Umweg darum
+> existiert nicht.
+
+Ab Bau 5 wird mit dem festen Schlüssel aus `android/schluessel` signiert, und
+jeder neue Bau lässt sich über den alten drüber installieren, ohne den
+Spielstand zu verlieren. Warum der Schlüssel im Repo liegt und was zu tun ist,
+falls das Spiel einmal in einen Store soll, steht in
+[`android/schluessel/LIESMICH.md`](android/schluessel/LIESMICH.md).
 
 Gebaut wird sie von `.github/workflows/apk.yml`. Der Auftrag läuft bei jedem
 Push auf den Entwicklungszweig und lässt sich unter Actions auch von Hand
-starten.
+starten. Ein Schritt im Auftrag vergleicht die Signatur der fertigen APK mit
+dem Schlüssel im Repo — ein falsch signierter Bau soll nicht erst auf dem
+Handy auffallen.
 
 ### Selbst bauen
 
