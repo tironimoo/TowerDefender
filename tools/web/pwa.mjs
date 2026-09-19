@@ -30,13 +30,19 @@ const alle = (await sammle(ORDNER)).filter((p) => p !== 'sw.js' && !p.endsWith('
 
 // Das Geruest ist alles, was das Spiel zum Starten braucht: die Seite selbst,
 // die gebauten Skripte und Stile, das Symbol und die Uebersicht der Blaetter.
+// Der Prototyp des neuen Stils und die 3D-Bibliothek gehoeren nicht ins
+// Geruest: sonst laedt jeder Spieler beim ersten Aufruf ein halbes Megabyte
+// fuer eine Seite mit, die er vielleicht nie oeffnet.
+const nurAufAbruf = (p) => p.startsWith('prototyp/') || p.startsWith('modelle/') || /three/i.test(p);
+
 const geruest = alle.filter(
   (p) =>
-    p === 'index.html' ||
-    p === 'manifest.webmanifest' ||
-    p === 'symbol-512.png' ||
-    p === 'atlas/index.json' ||
-    p.startsWith('assets/'),
+    !nurAufAbruf(p) &&
+    (p === 'index.html' ||
+      p === 'manifest.webmanifest' ||
+      p === 'symbol-512.png' ||
+      p === 'atlas/index.json' ||
+      p.startsWith('assets/')),
 );
 const rest = alle.filter((p) => !geruest.includes(p));
 

@@ -24,6 +24,14 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        // Zwei Seiten: das Spiel, und der Prototyp des neuen Stils. Vite
+        // trennt die Buendel selbst, das Spiel traegt Three.js also nicht mit.
+        spiel: resolvePath('./index.html'),
+        prototyp: resolvePath('./prototyp/index.html'),
+      },
+    },
   },
   test: {
     environment: 'node',

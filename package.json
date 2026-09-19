@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && npm run modelle && vite build",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tools tests",
+    "lint": "eslint src tools tests prototyp",
     "test": "vitest run",
     "test:watch": "vitest",
     "sim": "tsx tools/sim-runner/run.ts",
@@ -23,12 +23,15 @@
     "icons": "node tools/icons/build.mjs",
     "build:web": "npm run build && node tools/web/pwa.mjs",
     "kurve": "tsx tools/sim-runner/kurve.ts",
-    "reichweite": "tsx tools/sim-runner/reichweite.ts"
+    "reichweite": "tsx tools/sim-runner/reichweite.ts",
+    "modelle": "tsx tools/mesh/build.ts"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
     "@capacitor/preferences": "^8.0.1",
-    "pixi.js": "^8.6.6"
+    "@types/three": "^0.186.0",
+    "pixi.js": "^8.6.6",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.2",

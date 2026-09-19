@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a1410" />
+    <title>TowerDefender · Diorama-Prototyp</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; overflow: hidden; background: #0a1410; }
+      body { font: 500 13px/1.4 system-ui, sans-serif; color: #e8eef2; }
+      #buehne { position: absolute; inset: 0; touch-action: none; }
+      #buehne canvas { display: block; width: 100%; height: 100%; }
+      .leiste {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        display: flex; gap: 8px; align-items: center;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
+        pointer-events: none;
+      }
+      #anzeige {
+        font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+      }
+      button {
+        pointer-events: auto; font: inherit; font-weight: 600;
+        color: #e8eef2; background: rgba(20, 28, 36, 0.8);
+        border: 1px solid rgba(160, 200, 230, 0.35);
+        padding: 8px 14px; min-height: 40px; cursor: pointer;
+      }
+      button:active { background: rgba(60, 90, 120, 0.8); }
+      .rechts { margin-left: auto; display: flex; gap: 8px; }
+      #hinweis {
+        position: absolute; top: 0; left: 0; right: 0;
+        padding: 12px 14px calc(12px + env(safe-area-inset-top));
+        background: linear-gradient(rgba(0, 0, 0, 0.5), transparent);
+        color: #a8b8c4; pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="buehne"></div>
+    <div id="hinweis">Ziehen dreht die Insel · zwei Finger zoomen</div>
+    <div class="leiste">
+      <span id="anzeige">startet …</span>
+      <span class="rechts">
+        <button id="drehen" type="button">Drehen</button>
+        <button id="stufe" type="button">Qualität</button>
+      </span>
+    </div>
+    <script type="module" src="./diorama.ts"></script>
+  </body>
+</html>

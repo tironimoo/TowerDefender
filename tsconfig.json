@@ -34,5 +34,5 @@
       "@ui/*": ["src/ui/*"]
     }
   },
-  "include": ["src", "tools", "tests", "vite.config.ts", "eslint.config.js"]
+  "include": ["src", "tools", "tests", "prototyp", "vite.config.ts", "eslint.config.js"]
 }

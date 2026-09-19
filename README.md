@@ -69,6 +69,19 @@ Veröffentlicht wird von `.github/workflows/web.yml` bei jedem Push.
 > Danach unter *Actions → Webfassung veroeffentlichen → Run workflow* einmal
 > von Hand starten. Ab dann läuft es bei jedem Push von allein.
 
+### Prototyp des neuen Stils
+
+**<https://tironimoo.github.io/TowerDefender/prototyp/>**
+
+Karte eins als leuchtendes Diorama in echtem 3D — dieselbe Simulation, ein
+anderer Renderer. Ziehen dreht die Insel, zwei Finger zoomen, die Taste
+*Qualität* schaltet zwischen drei Stufen um. Die Leiste unten zeigt Bildrate,
+Gegnerzahl und Zeichenbefehle.
+
+Das ist eine Entscheidungsgrundlage, kein Spiel: es lässt sich nicht bauen und
+nicht verlieren. Die Frage ist allein, ob der Stil trägt und ob er auf einem
+Handy flüssig läuft.
+
 ### Weg 2: Fertige APK herunterladen
 
 Die aktuelle Testfassung liegt immer unter derselben Adresse:
