@@ -364,18 +364,20 @@ body {
 }
 
 /* Schwierigkeitsgrade nebeneinander statt untereinander. */
+/* Vier Grade in einer Zeile. Mit repeat(3) rutschte der vierte in eine
+   zweite Zeile und stand dort allein - das sah aus wie ein Versehen. */
 .gradreihe {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
   margin-top: 2px;
 }
 
 .gradreihe .taste {
   min-height: 32px;
-  padding: 0 4px;
+  padding: 0 2px;
   font-size: 12px;
-  gap: 3px;
+  gap: 2px;
 }
 
 .gradreihe .sterne {

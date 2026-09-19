@@ -84,25 +84,26 @@ describe('Alle Karten', () => {
   });
 
   /**
-   * Gemessen wird hier der Aufbau des AutoPlayers, nicht das Spiel selbst.
+   * Gemessen wird der Aufbau des AutoPlayers, nicht das Spiel selbst - aber
+   * auf einer Karte, die noch etwas fordert.
    *
-   * Der Wert ist gestiegen, seit die Karten mehr Gold hergeben: der Bot kauft
-   * dann mehr von seinem Lieblingsturm. Das ist keine Schieflage im Spiel -
-   * der Frostturm hat mit Abstand den schlechtesten Schaden je Gold aller
-   * Schadenstuerme. Die Schranke faengt weiter den Fall, dass ein einzelner
-   * Turm wirklich alles allein erledigt.
+   * Der Test stand frueher auf Karte 7. Seit die mittleren Karten entschaerft
+   * sind, gewinnt der Bot dort mit vollen Leben und einer einzigen Turmart:
+   * der Wert sagte dann nichts mehr ueber das Spiel aus, nur noch darueber,
+   * dass die Karte bequem geworden ist. Auf Karte 9 muss er weiterhin mischen,
+   * und genau diese Eigenschaft ist es wert, bewacht zu werden.
    */
-  it('lassen keinen einzelnen Turm den Schaden praktisch allein tragen', () => {
+  it('zwingen auf einer fordernden Karte zu mehr als einer Turmart', () => {
     const ergebnis = lauf(
-      'level-07',
+      'level-09',
       ['blitzspule', 'balliste', 'frostturm', 'leuchtfeuer'],
-      6,
+      8,
     );
     const anteile = damageShare(ergebnis);
     expect(anteile.length).toBeGreaterThan(1);
     const groesster = anteile[0];
     expect(groesster).toBeDefined();
-    if (groesster !== undefined) expect(groesster.share).toBeLessThan(0.9);
+    if (groesster !== undefined) expect(groesster.share).toBeLessThan(0.85);
   });
 });
 

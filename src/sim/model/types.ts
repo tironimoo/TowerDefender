@@ -9,7 +9,7 @@ export const SECONDS_PER_TICK = 1 / TICKS_PER_SECOND;
 export type DamageType = 'physisch' | 'feuer' | 'arkan';
 export type ArmorType = 'leder' | 'eisen' | 'obsidian' | 'aetherisch';
 export type TargetPolicy = 'erster' | 'letzter' | 'staerkster' | 'schwaechster' | 'naechster';
-export type Difficulty = 'normal' | 'hart' | 'albtraum';
+export type Difficulty = 'leicht' | 'normal' | 'hart' | 'albtraum';
 export type RunStatus = 'vorbereitung' | 'laufend' | 'gewonnen' | 'verloren';
 export type Region = 'wald' | 'glut' | 'leere';
 
@@ -315,6 +315,15 @@ export interface DifficultyMods {
 }
 
 export const DIFFICULTY: Readonly<Record<Difficulty, DifficultyMods>> = {
+  /**
+   * Leicht ist kein halbes Spiel, sondern dasselbe Spiel mit Luft.
+   *
+   * Gegner sind deutlich weniger zaeh und etwas langsamer, und es gibt mehr
+   * Gold - alle drei wirken zusammen, weil ein Fehler dann nicht nur weniger
+   * kostet, sondern sich auch noch ausbessern laesst. Wellen, Gegner und
+   * Karten bleiben gleich: wer auf Leicht spielt, sieht dasselbe Spiel.
+   */
+  leicht: { healthFactor: 0.6, speedFactor: 0.9, goldFactor: 1.3, extraWaves: 0 },
   normal: { healthFactor: 1.0, speedFactor: 1.0, goldFactor: 1.0, extraWaves: 0 },
   hart: { healthFactor: 1.6, speedFactor: 1.1, goldFactor: 0.9, extraWaves: 4 },
   albtraum: { healthFactor: 2.6, speedFactor: 1.2, goldFactor: 0.8, extraWaves: 8 },

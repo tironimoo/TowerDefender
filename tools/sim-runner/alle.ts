@@ -46,7 +46,7 @@ console.log('-'.repeat(96));
  * Wer Hart spielt, hat Normal schon hinter sich und entsprechend geforscht.
  * Ohne diesen Versatz misst man eine Lage, die es im Spiel nicht gibt.
  */
-const VERSATZ: Readonly<Record<Difficulty, number>> = { normal: 0, hart: 5, albtraum: 10 };
+const VERSATZ: Readonly<Record<Difficulty, number>> = { leicht: 0, normal: 0, hart: 5, albtraum: 10 };
 
 let gewonnen = 0;
 let index = -1;

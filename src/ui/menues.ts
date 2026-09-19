@@ -31,6 +31,7 @@ const REGION_NAME: Readonly<Record<LevelDef['region'], string>> = {
 };
 
 const SCHWIERIGKEIT_NAME: Readonly<Record<Difficulty, string>> = {
+  leicht: 'Leicht',
   normal: 'Normal',
   hart: 'Hart',
   albtraum: 'Albtraum',
@@ -48,7 +49,10 @@ export function dialog(titel: string, kinder: readonly (Node | string | false)[]
 export function levelOffen(stand: Spielstand, content: Content, index: number): boolean {
   if (index === 0) return true;
   const vorher = content.levelReihenfolge[index - 1];
-  return vorher !== undefined && sterneFuer(stand, vorher, 'normal') > 0;
+  if (vorher === undefined) return false;
+  // Auch ein Sieg auf Leicht oeffnet die naechste Karte. Sonst waere Leicht
+  // eine Sackgasse statt eines Weges durch das Spiel.
+  return sterneFuer(stand, vorher, 'leicht') > 0 || sterneFuer(stand, vorher, 'normal') > 0;
 }
 
 export function schwierigkeitOffen(
@@ -56,14 +60,18 @@ export function schwierigkeitOffen(
   levelId: string,
   difficulty: Difficulty,
 ): boolean {
-  if (difficulty === 'normal') return true;
+  if (difficulty === 'leicht' || difficulty === 'normal') return true;
+  // Hart setzt Normal voraus, nicht Leicht: sonst waere der Sprung zu gross.
   if (difficulty === 'hart') return sterneFuer(stand, levelId, 'normal') > 0;
   return sterneFuer(stand, levelId, 'hart') >= 3;
 }
 
 export function endlosOffen(stand: Spielstand, content: Content): boolean {
   const letzte = content.levelReihenfolge.at(-1);
-  return letzte !== undefined && sterneFuer(stand, letzte, 'normal') > 0;
+  if (letzte === undefined) return false;
+  // Wie bei den Karten zaehlt auch hier ein Sieg auf Leicht. Wer durch ist,
+  // ist durch.
+  return sterneFuer(stand, letzte, 'leicht') > 0 || sterneFuer(stand, letzte, 'normal') > 0;
 }
 
 export interface LevelAuswahlRueckrufe {
@@ -87,7 +95,7 @@ export function levelAuswahl(
     const grade = el('div', { class: 'gradreihe' });
     let endlosTaste: HTMLElement | null = null;
     if (offen) {
-      for (const grad of ['normal', 'hart', 'albtraum'] as const) {
+      for (const grad of ['leicht', 'normal', 'hart', 'albtraum'] as const) {
         const frei = schwierigkeitOffen(stand, levelId, grad);
         const knopf = el('button', { class: 'taste klein', type: 'button' }, [
           el('span', {}, [SCHWIERIGKEIT_NAME[grad].slice(0, 1)]),

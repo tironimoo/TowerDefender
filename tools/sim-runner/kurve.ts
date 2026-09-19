@@ -41,7 +41,7 @@ const LOADOUTS: readonly { readonly kurz: string; readonly tuerme: readonly stri
   { kurz: 'Spitze', tuerme: ['blitzspule', 'balliste', 'spaehturm', 'leuchtfeuer'] },
 ];
 
-const VERSATZ: Readonly<Record<Difficulty, number>> = { normal: 0, hart: 5, albtraum: 10 };
+const VERSATZ: Readonly<Record<Difficulty, number>> = { leicht: 0, normal: 0, hart: 5, albtraum: 10 };
 
 console.log('');
 console.log(`Schwierigkeit ${difficulty}. Zahl = verbliebene Leben, X = verloren.`);

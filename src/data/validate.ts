@@ -7,6 +7,7 @@
  */
 
 import type { Content } from '@sim/model/types';
+import { abstandZumWeg } from './levels/erzeuge';
 
 export function validateContent(content: Content): string[] {
   const problems: string[] = [];
@@ -103,6 +104,32 @@ export function validateContent(content: Content): string[] {
     if (level.albtraumMutator !== '' && !content.mutators.has(level.albtraumMutator)) {
       problems.push(`${where}: unbekannter Mutator ${level.albtraumMutator}.`);
     }
+    // Ein Turm, dessen Reichweite kleiner ist als der Abstand des naechsten
+    // Bauplatzes zum Weg, trifft auf dieser Karte von keinem Platz aus etwas.
+    // Er ist dann nicht schwach, sondern wirkungslos - und das sieht man ihm
+    // im Datenblatt nicht an. Der Kolbenstoss hatte Reichweite 1.8, der innere
+    // Bauplatzring liegt bei 1.9: um ein Zehntel verfehlt, auf acht von zehn
+    // Karten voellig nutzlos, und niemandem ist es aufgefallen.
+    for (const [art, plaetze] of [
+      [false, level.buildSlots.filter((slot) => !slot.aufWeg)],
+      [true, level.buildSlots.filter((slot) => slot.aufWeg)],
+    ] as const) {
+      if (plaetze.length === 0) continue;
+      const naechster = Math.min(
+        ...plaetze.map((slot) => abstandZumWeg(level.paths, slot.x, slot.y)),
+      );
+      for (const turm of content.towers.values()) {
+        if ((turm.special.kind === 'falle') !== art) continue;
+        if (turm.range < naechster) {
+          problems.push(
+            `${where}: ${turm.id} hat Reichweite ${turm.range}, der naechste ` +
+              `Bauplatz liegt aber ${naechster.toFixed(2)} vom Weg entfernt. ` +
+              `Der Turm trifft hier von keinem Platz aus etwas.`,
+          );
+        }
+      }
+    }
+
     if (!level.buildSlots.some((slot) => !slot.aufWeg)) {
       problems.push(`${where}: kein Bauplatz neben dem Weg.`);
     }

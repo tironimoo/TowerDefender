@@ -76,6 +76,53 @@ Vorbereitung; sie gehört an den Anfang, nicht ans Ende.
 Der lange Weg sind jetzt Handwerk und Kommando. Die bleiben teuer und tragen
 das Spiel über Hart und Albtraum hinaus.
 
+## Schwierigkeitsgrade
+
+| Grad | Leben der Gegner | Tempo | Gold | Wellen |
+|---|---|---|---|---|
+| Leicht | 60 % | 90 % | 130 % | wie Normal |
+| Normal | 100 % | 100 % | 100 % | — |
+| Hart | 160 % | 110 % | 90 % | vier mehr |
+| Albtraum | 260 % | 120 % | 80 % | acht mehr, plus Mutator |
+
+Leicht ist kein halbes Spiel: gleiche Karten, gleiche Wellen, gleiche Gegner.
+Nur ist ein Fehler dort billiger *und* ausbesserbar, weil gleichzeitig mehr
+Gold hereinkommt. Ein Sieg auf Leicht öffnet die nächste Karte und zählt für
+den Endlos-Modus — sonst wäre der Grad eine Sackgasse statt eines Weges durch
+das Spiel. Hart setzt weiterhin einen Sieg auf Normal voraus.
+
+## Reichweite schlägt Schaden
+
+Der wirksame Schaden eines Turms ist nicht sein Schaden je Sekunde, sondern
+Schaden mal Zeit im Wirkungsbereich — und die hängt daran, wie viel Weglänge
+er überhaupt abdeckt. Bauplätze liegen in 1,9 und 3,1 Kacheln Abstand zum Weg,
+also wächst die Deckung ungefähr mit `2·√(r² − d²)`. Gemessen mit
+`npm run reichweite`:
+
+| Turm | Reichweite | abgedeckte Weglänge |
+|---|---|---|
+| Kolbenstoß | 1,8 → **3,0** | 0,0 → 5,5 |
+| Frostturm | 2,5 → **3,2** | 3,4 → 6,2 |
+| Glutdüse | 2,5 → **3,0** | 3,4 → 5,5 |
+| Blitzspule | 3,0 → **3,6** | 5,5 → 7,5 |
+| Armbrustturm | 3,5 | 7,2 |
+| Schleuder | 4,5 | 11,6 |
+| Balliste | 7,0 | 21,7 |
+
+Der Kolbenstoß hatte Reichweite 1,8, der innere Bauplatzring liegt bei 1,9. Um
+ein Zehntel verfehlt — und damit auf acht von zehn Karten von *keinem einzigen*
+Bauplatz aus einsatzfähig. Nicht schwach, sondern wirkungslos, und im
+Datenblatt war davon nichts zu sehen.
+
+Die Spreizung erklärt auch, warum das Spiel zu schwer wirkte: die Balliste war
+je Gold rund zwanzigmal so wirksam wie der Frostturm. Wer nicht zufällig sie
+oder die Schleuder wählte, baute eine um ein Vielfaches schwächere
+Verteidigung, als das Balancing annahm.
+
+Dagegen steht jetzt eine Prüfung in `src/data/validate.ts`: Ein Turm, dessen
+Reichweite kleiner ist als der Abstand des nächsten Bauplatzes zum Weg, lässt
+`npm run test` scheitern — mit Nennung von Turm, Karte und beiden Zahlen.
+
 ## Die Schwierigkeitskurve
 
 Gemessen wird sie mit `npm run kurve`. Anders als `npm run balance` zeigt das

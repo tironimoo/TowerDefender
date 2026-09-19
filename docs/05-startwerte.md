@@ -18,13 +18,13 @@ Erzeugt am 2026-09-19.
 |---|---|---|---|---|---|---|---|
 | Armbrustturm | 100 | 12 | 1.2 | 3.5 | physisch | ja | — |
 | Schleuder | 140 | 30 | 0.6 | 4.5 | physisch | nein | Flaeche 1.2 |
-| Frostturm | 130 | 6 | 1 | 2.5 | arkan | ja | Flaeche 2.5, verlangsamt 35 % fuer 2 s |
-| Glutduese | 160 | 8 | 4 | 2.5 | feuer | nein | Flaeche 1, Brand 6/s fuer 3 s |
+| Frostturm | 130 | 6 | 1 | 3.2 | arkan | ja | Flaeche 2.5, verlangsamt 35 % fuer 2 s |
+| Glutduese | 160 | 8 | 4 | 3 | feuer | nein | Flaeche 1, Brand 6/s fuer 3 s |
 | Balliste | 220 | 95 | 0.35 | 7 | physisch | ja | Durchschlag 50 %, Forschung noetig |
-| Blitzspule | 180 | 18 | 0.8 | 3 | arkan | ja | 3 Spruenge, je 25 % schwaecher, Forschung noetig |
+| Blitzspule | 180 | 18 | 0.8 | 3.6 | arkan | ja | 3 Spruenge, je 25 % schwaecher, Forschung noetig |
 | Ambossfalle | 90 | 120 | 0.125 | 1 | physisch | nein | Flaeche 0.9, Durchschlag 25 %, steht auf dem Weg, Forschung noetig |
 | Netzwerfer | 150 | 0 | 0.14 | 4 | arkan | ja | verlangsamt 100 % fuer 2 s, Forschung noetig |
-| Kolbenstoss | 110 | 6 | 0.2 | 1.8 | physisch | nein | Flaeche 1.8, Rueckstoss 1.5, Forschung noetig |
+| Kolbenstoss | 110 | 6 | 0.2 | 3 | physisch | nein | Flaeche 1.8, Rueckstoss 1.5, Forschung noetig |
 | Leuchtfeuer | 200 | 0 | 0 | 3 | arkan | nein | +20 % Schaden im Umkreis, +15 % Reichweite im Umkreis, Forschung noetig |
 | Alchemieturm | 190 | 0 | 0 | 3.5 | arkan | nein | -40 % Panzerung, +15 % erlittener Schaden, Forschung noetig |
 | Spaehturm | 80 | 0 | 0 | 5 | arkan | nein | +10 % Reichweite im Umkreis, deckt Unsichtbare auf, Forschung noetig |
@@ -107,6 +107,7 @@ ihre Karte entworfen.
 
 | Grad | Leben | Tempo | Gold | Zusatzwellen |
 |---|---|---|---|---|
+| leicht | 60 % | 90 % | 130 % | +0 |
 | normal | 100 % | 100 % | 100 % | +0 |
 | hart | 160 % | 110 % | 90 % | +4 |
 | albtraum | 260 % | 120 % | 80 % | +8 |
