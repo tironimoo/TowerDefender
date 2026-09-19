@@ -77,10 +77,28 @@ jobs:
           fi
           [ "$fehler" -eq 0 ] || exit 1
 
+      # Pages laesst sich nicht vom Bau aus einschalten, das darf der Token
+      # nicht ("Resource not accessible by integration"). Statt daran mit einer
+      # kryptischen Meldung zu scheitern, sagen wir hier, was zu tun ist.
+      - name: Pages-Einstellung pruefen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" > /dev/null 2>&1; then
+            echo "GitHub Pages ist eingerichtet."
+          else
+            echo "::error::GitHub Pages ist fuer dieses Repo noch nicht eingeschaltet."
+            echo ""
+            echo "Einmalig von Hand, danach nie wieder:"
+            echo "  1. https://github.com/${{ github.repository }}/settings/pages"
+            echo "  2. Unter 'Build and deployment' bei 'Source' auf 'GitHub Actions' stellen."
+            echo "  3. Diesen Auftrag erneut starten:"
+            echo "     Actions -> Webfassung veroeffentlichen -> Run workflow."
+            exit 1
+          fi
+
       - name: Pages einrichten
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Dateien hochladen
         uses: actions/upload-pages-artifact@v3

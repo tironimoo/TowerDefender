@@ -54,6 +54,13 @@ nicht halten lässt, funktioniert er trotzdem.
 
 Veröffentlicht wird von `.github/workflows/web.yml` bei jedem Push.
 
+> **Einmalig nötig:** GitHub Pages muss für das Repo eingeschaltet sein. Der
+> Bauauftrag kann das nicht selbst, das darf sein Token nicht. Unter
+> [Settings → Pages](https://github.com/tironimoo/TowerDefender/settings/pages)
+> bei *Build and deployment* → *Source* auf **GitHub Actions** stellen, dann
+> den Auftrag unter *Actions → Webfassung veroeffentlichen → Run workflow*
+> einmal von Hand starten. Danach läuft es bei jedem Push von allein.
+
 ### Weg 2: Fertige APK herunterladen
 
 Die aktuelle Testfassung liegt immer unter derselben Adresse:
