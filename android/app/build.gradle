@@ -8,17 +8,16 @@ android {
     // jedem Bau-Laeufer einen neuen, und Android verweigert dann jedes Update,
     // weil die Signatur nicht zur installierten App passt.
     //
-    // Alle drei Signaturverfahren werden eingeschaltet: v1 verstehen auch alte
-    // Geraete und manche Dateimanager, v2 und v3 sind das, was neue Android-
-    // Fassungen erwarten. Fehlt v1, weigern sich einzelne aeltere Tablets, die
-    // Datei ueberhaupt zu oeffnen. Siehe schluessel/LIESMICH.md.
+    // v2 und v3 werden ausdruecklich eingeschaltet. v1 (JAR-Signatur) brauchen
+    // nur Geraete vor Android 7; die App verlangt ohnehin Android 7, und das
+    // Android-Gradle-Plugin laesst v1 ab minSdk 24 bewusst weg. Siehe
+    // schluessel/LIESMICH.md.
     signingConfigs {
         release {
             storeFile file('../schluessel/towerdefender.keystore')
             storePassword 'towerdefender'
             keyAlias 'towerdefender'
             keyPassword 'towerdefender'
-            enableV1Signing true
             enableV2Signing true
             enableV3Signing true
         }
@@ -27,7 +26,6 @@ android {
             storePassword 'towerdefender'
             keyAlias 'towerdefender'
             keyPassword 'towerdefender'
-            enableV1Signing true
             enableV2Signing true
             enableV3Signing true
         }

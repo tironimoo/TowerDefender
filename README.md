@@ -92,9 +92,11 @@ allen ist die ganze Karte sichtbar und kein Bedienelement abgeschnitten. Im
 Hochformat erscheint statt des Spiels der Hinweis, das Gerät zu drehen.
 
 Der Bauauftrag prüft die fertige APK, bevor er sie veröffentlicht: Signatur
-gegen den Schlüssel im Repo, alle drei Signaturverfahren (v1 für alte Geräte,
-v2 und v3 für neue), Fassungsnummer, keine Debug-Fassung, Unterstützung aller
-Bildschirmgrößen und kein Touchscreen-Zwang, der Geräte ausschließen würde.
+gegen den Schlüssel im Repo, die Signaturverfahren v2 und v3, Fassungsnummer,
+keine Debug-Fassung, Installation nur im internen Speicher, Unterstützung
+aller Bildschirmgrößen und kein Touchscreen-Zwang, der Geräte ausschließen
+würde. (v1, die alte JAR-Signatur, brauchen nur Geräte vor Android 7. Das
+Spiel verlangt ohnehin Android 7, deshalb lässt Gradle sie zu Recht weg.)
 
 ### Selbst bauen
 
