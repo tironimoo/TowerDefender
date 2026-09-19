@@ -89,13 +89,13 @@ Immunitaet bleibt jedoch immun.
 | 7 | Schmelzkessel | glut | 22×13 | 1 | 20 | 4 | 18 | 470 | gepanzert |
 | 8 | Wandelpfad | leere | 24×14 | 1 | 20 | 4 | 20 | 500 | hetze |
 | 9 | Dreifach | leere | 26×15 | 3 | 21 | 5 | 20 | 560 | teuer |
-| 10 | Der Schlund | leere | 24×14 | 2 | 18 | 5 | 25 | 560 | gepanzert |
+| 10 | Der Schlund | leere | 24×14 | 2 | 18 | 5 | 25 | 640 | gepanzert |
 
 ## Steigerung und Wirtschaft
 
 | Groesse | Wert |
 |---|---|
-| Leben je Welle | mal 1.095 gegenueber der vorherigen |
+| Leben je Welle | mal 1.085 gegenueber der vorherigen |
 | Gold je Welle | mal 1.075 |
 | Vorzeitiger Wellenstart | 1 Gold je verbleibender Sekunde |
 | Leben je Karte | 20, Bosse kosten alle auf einmal |

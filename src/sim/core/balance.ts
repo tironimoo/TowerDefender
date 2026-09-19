@@ -5,8 +5,15 @@
  * einzelner Tuerme und Gegner stehen in src/data. Siehe docs/05-startwerte.md.
  */
 
-/** Leben je Welle gegenueber der vorherigen. */
-export const WAVE_HEALTH_GROWTH = 1.095;
+/**
+ * Leben je Welle gegenueber der vorherigen.
+ *
+ * Zinseszins: die Zahl wirkt klein, entscheidet aber ueber das Ende. Bei 1.095
+ * war die letzte Welle einer 25-Wellen-Karte 8,8-mal so zaeh wie die erste,
+ * bei 1.085 sind es 7,1. Die fruehen Wellen merken davon fast nichts - genau
+ * deshalb ist das die richtige Schraube fuer ein Spiel, das erst spaet kippt.
+ */
+export const WAVE_HEALTH_GROWTH = 1.085;
 
 /**
  * Goldbelohnung je Welle. Langsamer als das Leben, aber nicht beliebig

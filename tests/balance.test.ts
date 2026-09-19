@@ -108,13 +108,22 @@ describe('Alle Karten', () => {
 });
 
 describe('Schadensarten', () => {
-  it('sind gegen aetherische Gegner nicht austauschbar', () => {
-    // In den Leerlanden gibt es Gegner, die nur arkaner Schaden trifft. Ein
-    // rein physischer Aufbau muss daran scheitern.
+  it('machen Arkan in den Leerlanden deutlich ueberlegen', () => {
+    // Frueher stand hier, ein rein physischer Aufbau muesse scheitern. Das war
+    // die Fassung, in der aetherische Gegner gar keinen physischen Schaden
+    // durchliessen - eine Sperre, keine Schwierigkeit. Jetzt gilt die
+    // schwaechere, aber ehrlichere Aussage: physisch geht, kostet aber
+    // spuerbar.
     const physisch = lauf('level-08', ['armbrustturm', 'schleuder', 'balliste'], 7);
     const arkan = lauf('level-08', ['blitzspule', 'frostturm', 'spaehturm', 'alchemieturm'], 7);
-    expect(physisch.won).toBe(false);
-    expect(arkan.won).toBe(true);
+    expect(arkan.livesLeft).toBeGreaterThan(physisch.livesLeft + 4);
+
+    // Auf der letzten Karte reicht physisch allein dann doch nicht mehr. Ohne
+    // diese zweite Pruefung waere die Schadensart am Ende belanglos.
+    const physischFinale = lauf('level-10', ['armbrustturm', 'schleuder', 'balliste'], 9);
+    const arkanFinale = lauf('level-10', ['blitzspule', 'frostturm', 'spaehturm', 'alchemieturm'], 9);
+    expect(physischFinale.won).toBe(false);
+    expect(arkanFinale.won).toBe(true);
   });
 
   it('machen Panzerung zu einem echten Hindernis', () => {

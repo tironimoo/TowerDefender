@@ -123,6 +123,23 @@ Dagegen steht jetzt eine Prüfung in `src/data/validate.ts`: Ein Turm, dessen
 Reichweite kleiner ist als der Abstand des nächsten Bauplatzes zum Weg, lässt
 `npm run test` scheitern — mit Nennung von Turm, Karte und beiden Zahlen.
 
+## Was das Messwerkzeug nicht kann
+
+`npm run kurve` lässt einen einfachen Bot spielen, und der hat zwei Eigenheiten,
+die man beim Lesen der Zahlen kennen muss:
+
+- Er baut reihum aus dem ganzen Loadout. Ein Loadout mit zwei Stütztürmen
+  (Spähturm, Leuchtfeuer) schneidet bei ihm auf einer Karte ohne unsichtbare
+  Gegner schlechter ab als ein Zweier-Loadout — ein Mensch würde den Spähturm
+  dort schlicht nicht bauen.
+- Ab einer Zielzahl an Türmen baut er nur noch aus statt neu. Dadurch bleibt
+  der zuerst gebaute Turmtyp übergewichtet.
+
+Die Zahlen taugen deshalb für den *Vergleich* zwischen Karten und zwischen
+Fassungen, nicht als Aussage darüber, wie schwer eine Karte für einen Menschen
+ist. Wer nach der Gegnerliste gezielt kontert, hat es leichter als jede Zeile
+dieser Tabelle behauptet.
+
 ## Die Schwierigkeitskurve
 
 Gemessen wird sie mit `npm run kurve`. Anders als `npm run balance` zeigt das
@@ -137,10 +154,14 @@ Drei Stellräder formen die Kurve:
   Leben aller Gegner. Die ersten vier Karten stehen auf 1,5 bis 1,6, die
   späten auf 0,75 bis 0,9. Ohne dieses Rad ließe sich eine Karte nur über
   Gegnermengen härten, und das ändert ihren Charakter mit.
-- **Goldwachstum** (`WAVE_GOLD_GROWTH`): 1,075 gegen 1,095 beim Leben. Der
+- **Goldwachstum** (`WAVE_GOLD_GROWTH`): 1,075 gegen 1,085 beim Leben. Der
   Abstand zwischen beiden Zahlen *ist* die Steigung der Kampagne. Bei 1,06
-  wuchs die Bedrohung bis Welle 25 auf das 2,2-fache dessen, was der Spieler
-  bezahlen konnte.
+  gegen 1,095 wuchs die Bedrohung bis Welle 25 auf das 2,2-fache dessen, was
+  der Spieler bezahlen konnte.
+- **Lebenswachstum** (`WAVE_HEALTH_GROWTH`): von 1,095 auf 1,085. Zinseszins:
+  die letzte Welle einer 25-Wellen-Karte ist damit 7,1-mal so zäh wie die
+  erste statt 8,8-mal. Die frühen Wellen merken davon fast nichts — genau
+  deshalb ist das die richtige Schraube für ein Spiel, das erst spät kippt.
 - **Startgold je Karte**: steigt mit der Region mit, damit der Sprung in die
   Glut und in die Leere bezahlbar bleibt.
 
