@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   apk:
-    name: Debug-APK
+    name: Release-APK
     runs-on: ubuntu-latest
 
     steps:

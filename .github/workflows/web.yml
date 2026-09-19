@@ -97,6 +97,32 @@ jobs:
             exit 1
           fi
 
+      # Ob der Zweig veroeffentlichen darf, entscheidet GitHub erst im zweiten
+      # Auftrag - und lehnt dort ohne Protokoll und ohne einen einzigen Schritt
+      # ab. Deshalb steht die Erklaerung hier, wo man sie noch lesen kann.
+      - name: Freigabe des Zweiges anzeigen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          STANDARD="$(gh api "repos/${{ github.repository }}" --jq .default_branch 2>/dev/null || echo '?')"
+          REGEL="$(gh api "repos/${{ github.repository }}/environments/github-pages" \
+            --jq 'if .deployment_branch_policy == null then "alle Zweige"
+                  elif .deployment_branch_policy.protected_branches then "nur geschuetzte Zweige"
+                  else "nur eine Liste von Zweigen" end' 2>/dev/null || echo 'unbekannt')"
+          echo "Zweig hier:      ${GITHUB_REF_NAME}"
+          echo "Standardzweig:   ${STANDARD}"
+          echo "Regel der Umgebung github-pages: ${REGEL}"
+          if [ "${REGEL}" != "alle Zweige" ] && [ "${GITHUB_REF_NAME}" != "${STANDARD}" ]; then
+            echo ""
+            echo "::warning::Dieser Zweig darf moeglicherweise nicht veroeffentlichen."
+            echo "Wenn der naechste Auftrag ohne Protokoll scheitert, liegt es daran."
+            echo "Einmalig von Hand:"
+            echo "  1. https://github.com/${{ github.repository }}/settings/environments"
+            echo "  2. github-pages -> Deployment branches and tags"
+            echo "  3. 'No restriction' waehlen, oder eine Regel fuer ${GITHUB_REF_NAME} anlegen."
+          fi
+
       - name: Pages einrichten
         uses: actions/configure-pages@v5
 
