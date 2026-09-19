@@ -4,11 +4,15 @@
 # Hand starten. Das Ergebnis haengt als Datei an einer Veroeffentlichung, damit
 # es sich direkt auf dem Handy herunterladen laesst.
 #
-# Die APK ist eine Testfassung und wird mit dem festen Schluessel aus
-# android/schluessel signiert. Der muss fest sein: sonst legt Gradle auf jedem
-# Laeufer einen neuen an, und Android verweigert das Update, weil die Signatur
-# nicht zur installierten App passt. Die Baunummer wird als versionCode
-# durchgereicht, damit jede Fassung neuer ist als die vorige.
+# Gebaut wird die Release-Fassung, nicht die Debug-Fassung. Eine Debug-Fassung
+# traegt android:debuggable="true" im Manifest, und daran erkennen Play Protect
+# und Kinderschutz-Dienste eine App, die sie gern wieder entfernen.
+#
+# Signiert wird mit dem festen Schluessel aus android/schluessel. Der muss fest
+# sein: sonst legt Gradle auf jedem Laeufer einen neuen an, und Android
+# verweigert das Update, weil die Signatur nicht zur installierten App passt.
+# Die Baunummer wird als versionCode durchgereicht, damit jede Fassung neuer
+# ist als die vorige.
 
 name: APK bauen
 
@@ -73,32 +77,77 @@ jobs:
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleDebug --no-daemon --stacktrace \
+          ./gradlew assembleRelease --no-daemon --stacktrace \
             -PversionCode=${{ github.run_number }} \
             -PversionName=1.0.${{ github.run_number }}
 
-      # Ein falsch signierter Bau faellt sonst erst auf dem Handy auf, und dann
-      # steht man vor einem Update, das sich nicht installieren laesst.
-      - name: Signatur pruefen
+      # Alles, was sonst erst auf dem Handy auffaellt, und dann steht man vor
+      # einer App, die sich nicht installieren laesst oder wieder verschwindet.
+      #
+      # Die Pruefungen sammeln ihre Ergebnisse und melden am Ende alle Fehler
+      # auf einmal. Ein Abbruch beim ersten Fehler verschweigt die anderen.
+      - name: Fertige APK pruefen
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          APK=android/app/build/outputs/apk/release/app-release.apk
           # sort -V, sonst waehlt die Sortierung 9.0.0 statt 36.0.0.
-          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)"
-          echo "apksigner: $APKSIGNER"
-          "$APKSIGNER" verify --print-certs \
-            android/app/build/outputs/apk/debug/app-debug.apk | tee signatur.txt
+          WERKZEUGE="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)"
+          echo "Build-Tools: $WERKZEUGE"
+
+          "$WERKZEUGE/apksigner" verify --verbose --print-certs "$APK" > signatur.txt 2>&1 || true
+          "$WERKZEUGE/aapt2" dump badging "$APK" > eigenschaften.txt 2>&1 || true
+          echo "--- Signatur ---"; cat signatur.txt
+          echo "--- Eigenschaften ---"; head -n 20 eigenschaften.txt
+
+          fehler=0
+          # muss <Beschreibung> <Muster> <Datei>
+          muss() {
+            if grep -qE "$2" "$3"; then
+              echo "  ok       $1"
+            else
+              echo "  FEHLT    $1   (Muster: $2)"; fehler=1
+            fi
+          }
+          darfNicht() {
+            if grep -qE "$2" "$3"; then
+              echo "  FEHLER   $1   (Muster: $2)"; fehler=1
+            else
+              echo "  ok       $1"
+            fi
+          }
+
+          echo "--- Pruefungen ---"
           ERWARTET="$(keytool -list -keystore android/schluessel/towerdefender.keystore \
             -storepass towerdefender -alias towerdefender \
             | grep -oE '([0-9A-F]{2}:){31}[0-9A-F]{2}' | tr -d ':' | tr 'A-F' 'a-f')"
-          GEFUNDEN="$(grep -i 'SHA-256 digest' signatur.txt | head -n 1 | awk '{print $NF}')"
-          echo "erwartet:  $ERWARTET"
-          echo "gefunden:  $GEFUNDEN"
-          test "$ERWARTET" = "$GEFUNDEN"
+          muss "signiert mit dem Schluessel aus dem Repo" "$ERWARTET" signatur.txt
+          # Alle drei Verfahren, damit von alten Tablets bis zu neuen Handys
+          # jedes Geraet die Signatur lesen kann.
+          muss "v1-Signatur (alte Geraete)" "v1 scheme \(JAR signing\): true" signatur.txt
+          muss "v2-Signatur"                "v2 scheme \(APK Signature Scheme v2\): true" signatur.txt
+          muss "v3-Signatur"                "v3 scheme \(APK Signature Scheme v3\): true" signatur.txt
+
+          muss "Fassungsnummer ${{ github.run_number }}" "versionCode='${{ github.run_number }}'" eigenschaften.txt
+          muss "laeuft ab Android 7"        "sdkVersion:'24'" eigenschaften.txt
+          # Eine Debug-Fassung raeumen Play Protect und Kinderschutz gern weg.
+          darfNicht "keine Debug-Fassung"   "application-debuggable" eigenschaften.txt
+          # Tablets: alle Groessen, und der Touchscreen darf keine Bedingung
+          # fuer die Installation sein.
+          muss "unterstuetzt grosse Bildschirme" "supports-screens:.*'xlarge'" eigenschaften.txt
+          muss "unterstuetzt alle Punktdichten"  "supports-any-density: 'true'" eigenschaften.txt
+          muss "Touchscreen nicht erzwungen"     "uses-feature-not-required:'android.hardware.touchscreen'" eigenschaften.txt
+          darfNicht "kein Ausschluss von Bildschirmgroessen" "^compatible-screens" eigenschaften.txt
+
+          if [ "$fehler" -ne 0 ]; then
+            echo "Die APK haette auf Geraeten Aerger gemacht. Bau abgebrochen."
+            exit 1
+          fi
+          echo "Alle Pruefungen bestanden."
 
       - name: APK umbenennen
         id: apk
         run: |
-          QUELLE=android/app/build/outputs/apk/debug/app-debug.apk
+          QUELLE=android/app/build/outputs/apk/release/app-release.apk
           ZIEL=towerdefender-${{ github.run_number }}.apk
           cp "$QUELLE" "$ZIEL"
           echo "pfad=$ZIEL" >> "$GITHUB_OUTPUT"

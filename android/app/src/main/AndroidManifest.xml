@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<!--
+    android:installLocation="internalOnly" ist wichtig: liegt die App auf einer
+    Speicherkarte oder auf adoptivem Speicher, verschwindet sie, sobald der
+    Speicher einmal nicht eingebunden ist. Von aussen sieht das aus, als haette
+    sich die App selbst geloescht.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:installLocation="internalOnly">
+
+    <!-- Ausdruecklich alle Bildschirmgroessen, damit auch Tablets die App
+         angeboten bekommen und sie nicht in einem Kompatibilitaetsrahmen
+         laeuft. -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true" />
 
     <application
         android:allowBackup="true"
@@ -9,6 +26,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!-- resizeableActivity bleibt false: ein quer gesperrtes Spiel hat im
+             geteilten Bildschirm nichts zu gewinnen, und Android laesst es auf
+             grossen Geraeten so sauber im Querformat stehen. configChanges
+             faengt Drehung und Groessenwechsel selbst ab, damit die Partie beim
+             Drehen eines Tablets nicht neu startet. -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:name=".MainActivity"
@@ -43,6 +65,11 @@
     <!-- Kurze Rueckmeldung bei Durchbruch, Sieg und Niederlage. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- Das Spiel braucht keine Netzverbindung, aber einen Bildschirm im Querformat. -->
-    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+    <!-- required="false": mit "true" schliesst Android Geraete ohne gemeldeten
+         Touchscreen aus, etwa Chromebooks und manche Tablet-Docks. Das Spiel
+         laesst sich dort per Maus bedienen. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <!-- Das Spiel rechnet in der WebView mit WebGL, braucht aber keine
+         bestimmte OpenGL-Fassung als Bedingung fuer die Installation. -->
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
 </manifest>

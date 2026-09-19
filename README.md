@@ -51,7 +51,7 @@ Quelle einmalig erlauben.
 > Spielstand geht dabei verloren — leider unvermeidbar, ein Umweg darum
 > existiert nicht.
 
-Ab Bau 5 wird mit dem festen Schlüssel aus `android/schluessel` signiert, und
+Ab Bau 6 wird mit dem festen Schlüssel aus `android/schluessel` signiert, und
 jeder neue Bau lässt sich über den alten drüber installieren, ohne den
 Spielstand zu verlieren. Warum der Schlüssel im Repo liegt und was zu tun ist,
 falls das Spiel einmal in einen Store soll, steht in
@@ -59,9 +59,42 @@ falls das Spiel einmal in einen Store soll, steht in
 
 Gebaut wird sie von `.github/workflows/apk.yml`. Der Auftrag läuft bei jedem
 Push auf den Entwicklungszweig und lässt sich unter Actions auch von Hand
-starten. Ein Schritt im Auftrag vergleicht die Signatur der fertigen APK mit
-dem Schlüssel im Repo — ein falsch signierter Bau soll nicht erst auf dem
-Handy auffallen.
+starten.
+
+### Wenn die App wieder verschwindet
+
+Eine seitlich installierte App kann aus Gründen wieder vom Gerät fliegen, die
+nichts mit dem Spiel zu tun haben. Der Reihe nach:
+
+1. **Google Play Protect.** Scannt auch seitlich installierte Apps und kann sie
+   entfernen. Ab Bau 7 wird eine Release-Fassung ausgeliefert statt einer
+   Debug-Fassung — eine Debug-Fassung trägt `android:debuggable="true"` und
+   fällt Schutzdiensten sofort auf. Falls Play Protect trotzdem meckert:
+   Play Store → Profilbild → Play Protect → Einstellungen → *Apps mit Play
+   Protect scannen*.
+2. **Family Link oder ein anderer Kinderschutz.** Auf einem betreuten Konto
+   lassen sich Apps aus unbekannten Quellen sperren und automatisch entfernen.
+   Das muss im Elternkonto erlaubt werden, im Spiel lässt sich daran nichts
+   ändern.
+3. **Speicherkarte.** Lag die App auf einer Karte oder auf adoptivem Speicher,
+   verschwand sie, sobald der Speicher nicht eingebunden war. Ab Bau 7 steht
+   `android:installLocation="internalOnly"` im Manifest, die App landet also
+   immer im internen Speicher.
+4. **Aufräum-Apps** mancher Hersteller löschen »selten genutzte« Apps. Dort in
+   die Ausnahmeliste eintragen.
+
+### Geräte
+
+Das Spiel läuft ab Android 7 (API 24) und ist im Querformat gesperrt. Geprüft
+sind die Seitenverhältnisse vom kleinen Handy (640×360) über lange Handys
+(915×412) bis zum Tablet im 4:3- und 16:10-Format (1024×768, 1280×800) — auf
+allen ist die ganze Karte sichtbar und kein Bedienelement abgeschnitten. Im
+Hochformat erscheint statt des Spiels der Hinweis, das Gerät zu drehen.
+
+Der Bauauftrag prüft die fertige APK, bevor er sie veröffentlicht: Signatur
+gegen den Schlüssel im Repo, alle drei Signaturverfahren (v1 für alte Geräte,
+v2 und v3 für neue), Fassungsnummer, keine Debug-Fassung, Unterstützung aller
+Bildschirmgrößen und kein Touchscreen-Zwang, der Geräte ausschließen würde.
 
 ### Selbst bauen
 
