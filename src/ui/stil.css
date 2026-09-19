@@ -363,26 +363,39 @@ body {
   color: var(--gold);
 }
 
-/* Schwierigkeitsgrade nebeneinander statt untereinander. */
-/* Vier Grade in einer Zeile. Mit repeat(3) rutschte der vierte in eine
-   zweite Zeile und stand dort allein - das sah aus wie ein Versehen. */
+/* Die vier Schwierigkeitsgrade nebeneinander.
+ *
+ * minmax(0, 1fr) und nicht 1fr: "1fr" heisst in CSS "minmax(auto, 1fr)", und
+ * auto ist die Breite des Inhalts. Passt der Inhalt nicht, waechst die Spalte
+ * ueber die Kachel hinaus - die vierte Taste stand dann halb ausserhalb. Mit
+ * minmax(0, ...) darf die Spalte schmaler werden als ihr Inhalt, und der
+ * Inhalt richtet sich danach statt umgekehrt.
+ *
+ * Buchstabe und Sterne stehen uebereinander. Nebeneinander brauchten sie eine
+ * Breite, die auf schmalen Geraeten nicht da ist, und je nach Schriftart des
+ * Geraets fiel das unterschiedlich aus. */
 .gradreihe {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 3px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
   margin-top: 2px;
 }
 
 .gradreihe .taste {
-  min-height: 32px;
-  padding: 0 2px;
-  font-size: 12px;
-  gap: 2px;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 38px;
+  padding: 3px 2px;
+  font-size: 13px;
+  line-height: 1.1;
+  gap: 1px;
+  overflow: hidden;
 }
 
 .gradreihe .sterne {
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0;
+  line-height: 1;
 }
 
 .endlostaste {

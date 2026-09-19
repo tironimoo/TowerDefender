@@ -37,6 +37,19 @@ const SCHWIERIGKEIT_NAME: Readonly<Record<Difficulty, string>> = {
   albtraum: 'Albtraum',
 };
 
+/**
+ * Die Grade in der Reihenfolge, in der sie angeboten werden.
+ *
+ * Eine Liste, nicht zwei: die Zahl der Grade stand vorher an zwei Stellen, in
+ * der Tastenreihe und - versteckt als Faktor neun - in der Gesamtzahl der
+ * Sterne. Beim Einbau von Leicht wurde nur die erste geaendert, und die
+ * Uebersicht zeigte weiter "von 90" statt "von 120".
+ */
+export const SCHWIERIGKEITEN: readonly Difficulty[] = ['leicht', 'normal', 'hart', 'albtraum'];
+
+/** Hoechstzahl Sterne je Karte: drei je Grad. */
+export const STERNE_JE_KARTE = SCHWIERIGKEITEN.length * 3;
+
 export function dialog(titel: string, kinder: readonly (Node | string | false)[]): HTMLElement {
   return el('div', { class: 'ueberlagerung' }, [
     el('div', { class: 'tafel dialog' }, [el('h1', {}, [titel]), ...kinder]),
@@ -95,7 +108,7 @@ export function levelAuswahl(
     const grade = el('div', { class: 'gradreihe' });
     let endlosTaste: HTMLElement | null = null;
     if (offen) {
-      for (const grad of ['leicht', 'normal', 'hart', 'albtraum'] as const) {
+      for (const grad of SCHWIERIGKEITEN) {
         const frei = schwierigkeitOffen(stand, levelId, grad);
         const knopf = el('button', { class: 'taste klein', type: 'button' }, [
           el('span', {}, [SCHWIERIGKEIT_NAME[grad].slice(0, 1)]),
@@ -135,7 +148,7 @@ export function levelAuswahl(
 
   return dialog('Karten', [
     el('div', { class: 'zeile schwach' }, [
-      `${sterneGesamt(stand)} von ${content.levelReihenfolge.length * 9} Sternen`,
+      `${sterneGesamt(stand)} von ${content.levelReihenfolge.length * STERNE_JE_KARTE} Sternen`,
     ]),
     liste,
     el('div', { class: 'reihe' }, [taste('Zurueck', rueckrufe.beiZurueck)]),
