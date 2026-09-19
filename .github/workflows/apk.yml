@@ -82,7 +82,9 @@ jobs:
       - name: Signatur pruefen
         run: |
           set -euo pipefail
-          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -n 1)"
+          # sort -V, sonst waehlt die Sortierung 9.0.0 statt 36.0.0.
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)"
+          echo "apksigner: $APKSIGNER"
           "$APKSIGNER" verify --print-certs \
             android/app/build/outputs/apk/debug/app-debug.apk | tee signatur.txt
           ERWARTET="$(keytool -list -keystore android/schluessel/towerdefender.keystore \
@@ -113,12 +115,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Der Text der Veroeffentlichung steht in einer Datei. Mehrzeilig
+          # direkt im Befehl geht nicht: eine Zeile ohne Einrueckung beendet
+          # den YAML-Block, und GitHub liest den Auftrag dann gar nicht erst.
+          cat > hinweise.md <<'ENDE'
+          Testfassung, Bau ${{ github.run_number }} (Version 1.0.${{ github.run_number }}).
+
+          Zum Installieren auf dem Handy herunterladen und die Installation aus
+          unbekannter Quelle einmalig erlauben.
+
+          **Wer Bau 1 bis 4 installiert hat, muss einmal deinstallieren.** Diese
+          Fassungen waren mit jeweils neu erzeugten Schluesseln signiert; Android
+          erlaubt ein Update nur bei gleicher Signatur. Der Spielstand geht dabei
+          verloren. Ab dieser Fassung wird mit einem festen Schluessel signiert,
+          Updates laufen also normal durch.
+          ENDE
+          cat hinweise.md
+
           # Eine feste Marke, damit der Link immer derselbe bleibt.
           gh release delete apk-latest --yes --cleanup-tag || true
           gh release create apk-latest \
             --title "TowerDefender APK" \
-            --notes "Testfassung, Bau ${{ github.run_number }} (Version 1.0.${{ github.run_number }}). Zum Installieren auf dem Handy herunterladen und die Installation aus unbekannter Quelle einmalig erlauben.
-
-Bruch mit Bau 1 bis 4: diese Fassungen waren mit jeweils neu erzeugten Schluesseln signiert, ein Update darauf ist technisch nicht moeglich. Einmalig die alte App deinstallieren, dann diese installieren. Ab hier laufen Updates normal durch." \
+            --notes-file hinweise.md \
             --target "${{ github.sha }}" \
             "${{ steps.apk.outputs.pfad }}"
