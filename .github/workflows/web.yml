@@ -69,7 +69,7 @@ jobs:
           muss "Dienstarbeiter"    dist/sw.js
           muss "Anwendungsangaben" dist/manifest.webmanifest
           muss "Symbol"            dist/symbol-512.png
-          muss "Sprite-Blaetter"   dist/atlas/index.json
+          muss "Modelldaten"       dist/modelle/modelle.json
           # Der Platzhalter muss ersetzt sein, sonst heisst das Ablagefach
           # woertlich "__FASSUNG__" und das Update kommt nie an.
           if grep -q "__FASSUNG__" dist/sw.js; then

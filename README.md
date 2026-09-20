@@ -1,11 +1,13 @@
 # TowerDefender
 
-Ein Tower-Defense-Spiel für das Handy im Klotz-Stil. Zehn handgebaute Karten in
+Ein Tower-Defense-Spiel für das Handy als geknetetes Diorama. Zehn handgebaute Karten in
 drei Regionen, zwölf Türme, zwölf Gegner, drei Bosse, ein Loadout aus vier
 Türmen pro Karte und drei Progressionssysteme für die Zeit danach.
 
-Grafik und Ton sind vollständig im Projekt erzeugt: die Sprite-Blätter kommen
-aus einem eigenen Voxel-Renderer, die Geräusche aus Oszillatoren.
+Grafik und Ton sind vollständig im Projekt erzeugt. Die Körper entstehen zur
+Laufzeit aus Abstandsfeldern: jedes Modell ist eine Liste von Eiern, Würsten
+und Kästen, aus denen eine gemeinsame Hülle gezogen wird. Die Geräusche kommen
+aus Oszillatoren.
 
 ## Schnellstart
 
@@ -25,7 +27,6 @@ Handy funktioniert dieselbe Adresse im WLAN.
 | `npm run build` | Fertige Fassung nach `dist/` |
 | `npm run check` | Typprüfung, Linter und alle Tests |
 | `npm test` | Nur die Tests |
-| `npm run assets` | Baut die Sprite-Blätter neu |
 | `npm run balance` | Misst alle zehn Karten auf Spielbarkeit |
 | `npm run verlauf` | Zeigt eine Partie Welle für Welle |
 | `npm run sim` | Rechnet eine Karte durch und zeigt Schadensanteile |
@@ -169,14 +170,14 @@ Spielgrafik.
 
 ## Aufbau
 
-Die Spiellogik ist strikt von der Darstellung getrennt. `src/sim` kennt PixiJS
+Die Spiellogik ist strikt von der Darstellung getrennt. `src/sim` kennt Three.js
 nicht und läuft ohne Browser. Das macht das Spiel testbar und erlaubt, das
 Balancing zu messen statt zu raten.
 
 | Ordner | Inhalt |
 |---|---|
 | `src/sim` | Spiellogik mit festem Zeitschritt, ohne Grafik |
-| `src/render` | Darstellung mit PixiJS |
+| `src/render3d` | Darstellung mit Three.js |
 | `src/ui` | Menüs und Anzeige als HTML |
 | `src/data` | Türme, Gegner, Wellen, Karten, Mutatoren |
 | `src/meta` | Spielstand, Forschung, Meisterschaft |
@@ -194,8 +195,10 @@ Balancing zu messen statt zu raten.
 
 ## Grafikdateien
 
-`public/atlas/` enthält die erzeugten Sprite-Blätter und gehört ins Repo, damit
-das Spiel nach dem Klonen sofort startet. Neu bauen mit `npm run assets`.
+`public/modelle/modelle.json` enthält die alten Quadermodelle. Das Spiel
+braucht sie nicht mehr — es baut seine Körper aus `src/render3d/knetmodelle.ts`
+—, aber der Prototyp zeigt damit den Vergleich zwischen beiden Lesarten. Neu
+bauen mit `npm run modelle`.
 
 Der Ordner `assets/` ist vom Repo ausgeschlossen. Er ist für eigene
 Modellquellen gedacht, falls du den Grafiksatz austauschen willst.

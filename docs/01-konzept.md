@@ -5,7 +5,7 @@ in `05-startwerte.md`, das direkt aus den Daten erzeugt wird.
 
 ## Kurzfassung
 
-Ein Tower-Defense-Spiel für Handy im Klotz-Stil. Zehn handgebaute Karten in drei
+Ein Tower-Defense-Spiel für Handy als geknetetes Diorama. Zehn handgebaute Karten in drei
 Regionen. Der Gegnerweg ist fest, Türme entstehen auf vorgegebenen Bauplätzen
 daneben. Vor jeder Karte wählst du vier von zwölf Türmen. Langzeitmotivation
 liefern drei ineinandergreifende Systeme: Forschung, Turm-Meisterschaft und
@@ -15,8 +15,8 @@ Sterne über drei Schwierigkeitsgrade.
 
 | Thema | Entscheidung |
 |---|---|
-| Technik | TypeScript, PixiJS, Capacitor |
-| Stil | Klotz-Optik, vorgerenderte Voxel-Sprites |
+| Technik | TypeScript, Three.js, Capacitor |
+| Stil | Knetdiorama, Körper aus Abstandsfeldern |
 | Bauen | Fester Weg, freie Bauplätze |
 | Progression | Loadout, Forschung, Meisterschaft |
 | Ausrichtung | Querformat |
