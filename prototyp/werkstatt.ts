@@ -14,13 +14,13 @@
 
 import * as THREE from 'three';
 
-import type { ModellBau, RohModell } from './meshbau';
-import { alsGruppe, baueModell, bewege, setzeBauform } from './meshbau';
-import { setzeVerschmelzung } from './glatt';
-import { knetWerte, machKnete } from './knete';
-import { baueHimmel } from './himmel';
-import { baueBodenschatten } from './bodenschatten';
-import { KNETMODELLE } from './knetmodelle';
+import type { ModellBau, RohModell } from '@render3d/meshbau';
+import { alsGruppe, baueModell, bewege, setzeBauform } from '@render3d/meshbau';
+import { setzeVerschmelzung } from '@render3d/glatt';
+import { knetWerte, machKnete } from '@render3d/knete';
+import { baueHimmel } from '@render3d/himmel';
+import { baueBodenschatten } from '@render3d/bodenschatten';
+import { KNETMODELLE } from '@render3d/knetmodelle';
 
 const gefunden = document.getElementById('buehne');
 if (gefunden === null) throw new Error('Buehne fehlt.');

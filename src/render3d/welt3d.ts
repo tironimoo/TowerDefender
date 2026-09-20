@@ -22,41 +22,59 @@ interface RegionFarben {
   readonly fluessig: string;
   readonly fluessigLeuchtet: number;
   readonly sockel: string;
+  /** Grund unter dem Wasser, der Lava, dem Riss. */
+  readonly bett: string;
+  /** Erde an der abfallenden Kante der Insel. */
+  readonly boeschung: string;
   readonly himmel: string;
   readonly licht: string;
   readonly fuellicht: string;
   readonly nebel: string;
 }
 
+/**
+ * Farben je Region, fuer Knete gemischt.
+ *
+ * Reine Farben gibt es in Knete nicht - jede hat einen Anteil Grau darin.
+ * Deshalb sind die Toene hier gebrochener, als es am Bildschirm zunaechst
+ * richtig aussieht; im fertigen Bild, nach Tonwertkurve und geteilter
+ * Toenung, stimmt es dann.
+ */
 export const REGIONEN: Readonly<Record<Region, RegionFarben>> = {
   wald: {
-    boden: ["#4a7c3f", "#436f3a"],
-    weg: "#6b5136",
-    fluessig: "#2f6f9e",
+    boden: ["#6f9a4c", "#7fa858"],
+    weg: "#9c7448",
+    fluessig: "#4d87a6",
     fluessigLeuchtet: 0.15,
-    sockel: "#3a2f26",
+    sockel: "#6b523a",
+    bett: "#5a6b5c",
+    boeschung: "#6b523a",
     himmel: "#0a1410",
     licht: "#ffe0b0",
     fuellicht: "#3a5a7a",
     nebel: "#0d1a14",
   },
   glut: {
-    boden: ["#4a3a38", "#413230"],
-    weg: "#2e2422",
-    fluessig: "#ff6a1e",
-    fluessigLeuchtet: 2.4,
-    sockel: "#241a18",
+    boden: ["#5e4a44", "#54413c"],
+    weg: "#3a2e2a",
+    fluessig: "#ff7a2e",
+    fluessigLeuchtet: 1.4,
+    sockel: "#3d2b22",
+    bett: "#4a2415",
+    boeschung: "#3d2b22",
     himmel: "#140806",
     licht: "#ffb070",
     fuellicht: "#8a3a1a",
     nebel: "#1a0a06",
   },
   leere: {
-    boden: ["#4a3f7a", "#413670"],
-    weg: "#6a5a94",
-    fluessig: "#a86adf",
-    fluessigLeuchtet: 1.1,
-    sockel: "#1e1834",
+    boden: ["#4a3f74", "#433970"],
+    weg: "#8f7ec0",
+    fluessig: "#b57cf0",
+    fluessigLeuchtet: 0.9,
+    sockel: "#332a55",
+    bett: "#3a3068",
+    boeschung: "#332a55",
     himmel: "#08060f",
     licht: "#c8b0ff",
     fuellicht: "#4a3a8a",
@@ -129,31 +147,44 @@ export function baueInsel(
   // ein Wuerfel je Kachel. Der Unterschied ist derselbe wie zwischen Ei und
   // Quader bei den Figuren - das Raster ist der Stil, nicht seine Aufteilung.
   let wasser: ((tief: boolean) => void) | null = null;
+  // Ab einer gewissen Eigenhelligkeit ist es keine Fluessigkeit mehr, die man
+  // durchschaut, sondern eine, die leuchtet.
+  const gluehtAuf = farben.fluessigLeuchtet > 1;
   if (glatterBoden) {
     const boden = baueBoden(level, {
       gras: farben.boden,
       weg: farben.weg,
-      bett: farben.sockel,
+      bett: farben.bett,
       fels: farben.sockel,
-      boeschung: farben.sockel,
+      boeschung: farben.boeschung,
     });
     feste.push(boden.flaeche);
     if (boden.wasser !== null) {
       const wasserNetz = new THREE.Mesh(
         boden.wasser,
-        // Giessharz statt Farbe: stark spiegelnd, halb durchsichtig, und
-        // die Farbe bewusst gebrochen. Reines Blau sieht nach Papier aus.
-        new THREE.MeshPhysicalMaterial({
-          color: farben.fluessig,
-          roughness: 0.08,
-          metalness: 0,
-          transmission: 0.6,
-          thickness: 0.35,
-          ior: 1.33,
-          transparent: true,
-          opacity: 0.8,
-          side: THREE.DoubleSide,
-        }),
+        // Zwei Fluessigkeiten, zwei Materialien: Wasser ist Giessharz,
+        // durchsichtig und stark spiegelnd. Lava ist das Gegenteil - sie
+        // laesst nichts durch, sondern gibt Licht ab. Dasselbe Material fuer
+        // beide hat die Lava wie rotes Papier aussehen lassen.
+        gluehtAuf
+          ? new THREE.MeshStandardMaterial({
+              color: farben.fluessig,
+              emissive: new THREE.Color(farben.fluessig),
+              emissiveIntensity: farben.fluessigLeuchtet,
+              roughness: 0.62,
+              metalness: 0,
+            })
+          : new THREE.MeshPhysicalMaterial({
+              color: farben.fluessig,
+              roughness: 0.08,
+              metalness: 0,
+              transmission: 0.6,
+              thickness: 0.35,
+              ior: 1.33,
+              transparent: true,
+              opacity: 0.8,
+              side: THREE.DoubleSide,
+            }),
       );
       wasserNetz.renderOrder = 1;
       gruppe.add(wasserNetz);
@@ -162,6 +193,7 @@ export function baueInsel(
       // das sieht immer noch nach Giessharz aus und kostet nichts.
       const material = wasserNetz.material;
       wasser = (tief: boolean): void => {
+        if (!(material instanceof THREE.MeshPhysicalMaterial)) return;
         material.transmission = tief ? 0.6 : 0;
         material.opacity = tief ? 0.8 : 0.92;
         material.roughness = tief ? 0.08 : 0.16;

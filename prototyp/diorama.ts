@@ -22,20 +22,22 @@ import { loadContent } from '@data/index';
 import type { Enemy, World } from '@sim/index';
 import { applyCommand, createWorld, step, TICKS_PER_SECOND } from '@sim/index';
 
-import type { ModellBau, RohModell } from './meshbau';
-import { alsGruppe, baueModell, bewege, setzeBauform, setzeKantenbruch, VOXEL } from './meshbau';
-import { setzeVerschmelzung } from './glatt';
-import { baueInsel, HOEHE, REGIONEN } from './welt3d';
-import { TiltShiftShader } from './tiltshift';
-import { AbzugShader } from './abzug';
-import { knetWerte, machKnete } from './knete';
+import type { ModellBau, RohModell } from '@render3d/meshbau';
+import { alsGruppe, baueModell, bewege, setzeBauform, setzeKantenbruch, VOXEL } from '@render3d/meshbau';
+import { setzeVerschmelzung } from '@render3d/glatt';
+import { baueInsel, HOEHE, REGIONEN } from '@render3d/welt3d';
+import { TiltShiftShader } from '@render3d/tiltshift';
+import { AbzugShader } from '@render3d/abzug';
+import { knetWerte, machKnete } from '@render3d/knete';
 import { baueBedienfeld } from './regler';
 import type { Stimmung } from './regler';
-import { baueHimmel } from './himmel';
-import { baueBodenschatten } from './bodenschatten';
-import { KNETMODELLE } from './knetmodelle';
+import { baueHimmel } from '@render3d/himmel';
+import { baueBodenschatten } from '@render3d/bodenschatten';
+import { KNETMODELLE } from '@render3d/knetmodelle';
 
-const LEVEL = 'level-01';
+// Die Karte laesst sich ueber die Adresse waehlen: ?karte=level-05 zeigt
+// die Glutregion, ?karte=level-09 die Leere. Ohne Angabe die erste.
+const LEVEL = new URLSearchParams(location.search).get('karte') ?? 'level-01';
 
 // --- Qualitaetsstufen ------------------------------------------------------
 // Was ein Handy nicht schafft, wird weggelassen statt langsam gerechnet.

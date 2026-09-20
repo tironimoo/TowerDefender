@@ -28,6 +28,7 @@
       "@data/*": ["src/data/*"],
       "@shared/*": ["src/shared/*"],
       "@render/*": ["src/render/*"],
+      "@render3d/*": ["src/render3d/*"],
       "@app/*": ["src/app/*"],
       "@meta/*": ["src/meta/*"],
       "@platform/*": ["src/platform/*"],
