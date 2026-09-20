@@ -15,7 +15,7 @@
 
 import * as THREE from 'three';
 import type { DamageType, Enemy, LevelDef, SimEvent, World } from '@sim/index';
-import { Buehne, STUFEN } from './buehne';
+import { Buehne, STIMMUNG_JE_REGION, STUFEN } from './buehne';
 import type { Stufe, StufenName } from './buehne';
 import { Effekte3D } from './effekte3d';
 import { Anzeige2D } from './anzeige2d';
@@ -97,7 +97,7 @@ export class Welt3D {
 
   constructor(
     private readonly level: LevelDef,
-    stimmung = 'Werkbank',
+    stimmung = STIMMUNG_JE_REGION[level.region],
   ) {
     setzeBauform('glatt');
     setzeVerschmelzung(0.5);

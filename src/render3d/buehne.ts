@@ -231,8 +231,80 @@ export const STIMMUNGEN: readonly Stimmung[] = [
   },
 ];
 
+/**
+ * Zwei Stimmungen eigens fuers Spiel.
+ *
+ * Die vier oben sind Vorfuehrstuecke; sie duerfen kraeftig sein. Im Spiel
+ * gilt eine andere Regel: der Hintergrund darf die Insel nicht ueberstimmen,
+ * und der Weg muss auf jeder Karte zu sehen sein. Deshalb liegt hier hinter
+ * der Glut kein Abendhimmel, sondern eine dunkle Schmiedewand - warm
+ * beleuchtet, aber ruhig.
+ */
+const SPIELSTIMMUNGEN: readonly Stimmung[] = [
+  {
+    name: 'Schmiede',
+    farben: {
+      himmelOben: '#1d1512',
+      himmelUnten: '#2e211b',
+      schimmer: '#6b4432',
+      nebel: '#241a15',
+      sonne: '#ffd9a8',
+      gegen: '#8aa8d8',
+      himmel: '#c9b8a4',
+      boden: '#4a3228',
+      saum: '#ff9a52',
+    },
+    werte: {
+      belichtung: 1.15, sonne: 3.4, gegenlicht: 2.0, himmelslicht: 3.0,
+      sonnenrichtung: 0.7, sonnenhoehe: 0.62,
+      fackeln: 4.0, kehlen: 0.95, bodenschatten: 0.5, dunst: 0.004,
+      lack: 0.38, rauheit: 0.6, korn: 0.55, beulen: 0.42, randlicht: 0.42,
+      bluehen: 0.28, unschaerfe: 13, schaerfeband: 0.16, koernung: 0.05,
+      abschattung: 0.34, saettigung: 0.96, toenung: 0.18,
+    },
+  },
+  {
+    name: 'Sternwarte',
+    farben: {
+      himmelOben: '#0d0b18',
+      himmelUnten: '#1a1730',
+      schimmer: '#4a4078',
+      nebel: '#151228',
+      sonne: '#e8e4ff',
+      gegen: '#8fb4ff',
+      himmel: '#bcc4e8',
+      boden: '#2a2444',
+      saum: '#c9a8ff',
+    },
+    werte: {
+      belichtung: 1.1, sonne: 3.2, gegenlicht: 2.2, himmelslicht: 3.2,
+      sonnenrichtung: 2.5, sonnenhoehe: 0.85,
+      fackeln: 3.0, kehlen: 1.0, bodenschatten: 0.55, dunst: 0.004,
+      lack: 0.45, rauheit: 0.55, korn: 0.6, beulen: 0.45, randlicht: 0.4,
+      bluehen: 0.32, unschaerfe: 14, schaerfeband: 0.16, koernung: 0.05,
+      abschattung: 0.34, saettigung: 0.95, toenung: 0.16,
+    },
+  },
+];
+
+/**
+ * Welche Stimmung zu welcher Region gehoert.
+ *
+ * Nicht aus Geschmack, sondern aus Lesbarkeit: die Glutregion ist von sich
+ * aus dunkel, und mit dem gedaempften Werkbanklicht verschwindet der Weg
+ * darin. Das Abendlicht traegt die Waerme der Lava mit und macht die Karte
+ * gleichzeitig hell genug, dass ein Kind auf einem Telefon im Zug sieht, wo
+ * die Gegner laufen. Fuer die Leere gilt dasselbe mit kaltem Licht.
+ */
+export const STIMMUNG_JE_REGION: Readonly<Record<Region, string>> = {
+  wald: 'Werkbank',
+  glut: 'Schmiede',
+  leere: 'Sternwarte',
+};
+
 function stimmungNach(name: string): Stimmung {
-  return STIMMUNGEN.find((s) => s.name === name) ?? (STIMMUNGEN[0] as Stimmung);
+  const alle = [...STIMMUNGEN, ...SPIELSTIMMUNGEN];
+  return alle.find((s) => s.name === name) ?? (STIMMUNGEN[0] as Stimmung);
 }
 
 export interface Materialien {

@@ -166,6 +166,7 @@ export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
   const hoehen = new Float32Array(nx * nz);
 
   const anteile = new Float32Array(nx * nz);
+  const nass = new Float32Array(nx * nz);
   for (let iz = 0; iz < nz; iz++) {
     for (let ix = 0; ix < nx; ix++) {
       const x = (ix - puffer) / TEILUNG;
@@ -175,6 +176,7 @@ export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
       // ein Brett sieht wieder nach Computer aus.
       const hoehe = probe.hoehe + (welle(x * 0.55, z * 0.55) - 0.5) * 0.055 * probe.anteil;
       anteile[iz * nx + ix] = probe.anteil;
+      nass[iz * nx + ix] = probe.wasser;
       const k = (iz * nx + ix) * 3;
       lagen[k] = x;
       lagen[k + 1] = hoehe;
@@ -210,33 +212,45 @@ export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
   flaeche.setIndex(dreiecke);
   flaeche.computeVertexNormals();
 
-  // --- Wasser --------------------------------------------------------------
-  // Eine eigene Flaeche knapp ueber dem Bett, damit sie spiegeln kann,
-  // waehrend der Grund darunter matt bleibt.
+  // --- Fluessigkeit ---------------------------------------------------------
+  // Aus demselben Feld wie der Boden, nicht aus Kachelflicken. Der
+  // Unterschied ist an den Raendern zu sehen: ein Tuempel aus Kacheln endet
+  // in einer Treppe, dieser hier laeuft weich aus. Die Deckkraft steckt in
+  // der vierten Farbkomponente und folgt dem Anteil Wasser in der Naehe.
   const wasserLagen: number[] = [];
+  const wasserFarben: number[] = [];
   const wasserIndex: number[] = [];
-  for (let tz = 0; tz < level.hoehe; tz++) {
-    for (let tx = 0; tx < level.breite; tx++) {
-      if (art(tx, tz) !== 'fluessig') continue;
-      // Wo kein Wasser anschliesst, die Kante einziehen: sonst endet der
-      // Tuempel als gerade abgeschnittenes blaues Blatt, und am Inselrand
-      // steht er sogar in der Luft.
-      const ein = (dx: number, dz: number): number =>
-        art(tx + dx, tz + dz) === 'fluessig' ? 0 : 0.34;
-      const x0 = tx + ein(-1, 0);
-      const x1 = tx + 1 - ein(1, 0);
-      const z0 = tz + ein(0, -1);
-      const z1 = tz + 1 - ein(0, 1);
-      const n = wasserLagen.length / 3;
-      const y = 0.055;
-      wasserLagen.push(x0, y, z0, x1, y, z0, x0, y, z1, x1, y, z1);
-      wasserIndex.push(n, n + 2, n + 1, n + 1, n + 2, n + 3);
+  const wasserZuordnung = new Int32Array(nx * nz).fill(-1);
+  const SPIEGEL = 0.075;
+  for (let iz = 0; iz < nz; iz++) {
+    for (let ix = 0; ix < nx; ix++) {
+      const anteil = nass[iz * nx + ix] ?? 0;
+      const land = anteile[iz * nx + ix] ?? 0;
+      // Nur dort, wo auch Land ist. Sonst laeuft die Fluessigkeit ueber die
+      // Boeschung hinaus und haengt als Tuch neben der Insel.
+      if (anteil <= 0.02 || land < 0.75) continue;
+      wasserZuordnung[iz * nx + ix] = wasserLagen.length / 3;
+      wasserLagen.push((ix - puffer) / TEILUNG, SPIEGEL, (iz - puffer) / TEILUNG);
+      // Zur Mitte hin deckend, zum Rand hin durchsichtig.
+      const deckung = Math.max(0, Math.min(1, (anteil - 0.12) / 0.5)) * Math.min(1, (land - 0.75) * 6);
+      wasserFarben.push(1, 1, 1, deckung * deckung * (3 - 2 * deckung));
+    }
+  }
+  for (let iz = 0; iz < nz - 1; iz++) {
+    for (let ix = 0; ix < nx - 1; ix++) {
+      const a = wasserZuordnung[iz * nx + ix] ?? -1;
+      const b = wasserZuordnung[iz * nx + ix + 1] ?? -1;
+      const c = wasserZuordnung[(iz + 1) * nx + ix] ?? -1;
+      const d = wasserZuordnung[(iz + 1) * nx + ix + 1] ?? -1;
+      if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+      wasserIndex.push(a, c, b, b, c, d);
     }
   }
   let wasser: THREE.BufferGeometry | null = null;
-  if (wasserLagen.length > 0) {
+  if (wasserIndex.length > 0) {
     wasser = new THREE.BufferGeometry();
     wasser.setAttribute('position', new THREE.Float32BufferAttribute(wasserLagen, 3));
+    wasser.setAttribute('color', new THREE.Float32BufferAttribute(wasserFarben, 4));
     wasser.setIndex(wasserIndex);
     wasser.computeVertexNormals();
   }

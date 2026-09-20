@@ -55,10 +55,10 @@ export const REGIONEN: Readonly<Record<Region, RegionFarben>> = {
     nebel: "#0d1a14",
   },
   glut: {
-    boden: ["#5e4a44", "#54413c"],
-    weg: "#3a2e2a",
+    boden: ["#4b3b36", "#443330"],
+    weg: "#a08a74",
     fluessig: "#ff7a2e",
-    fluessigLeuchtet: 1.4,
+    fluessigLeuchtet: 1.15,
     sockel: "#3d2b22",
     bett: "#4a2415",
     boeschung: "#3d2b22",
@@ -68,8 +68,8 @@ export const REGIONEN: Readonly<Record<Region, RegionFarben>> = {
     nebel: "#1a0a06",
   },
   leere: {
-    boden: ["#4a3f74", "#433970"],
-    weg: "#8f7ec0",
+    boden: ["#463c6b", "#3f3565"],
+    weg: "#9585c8",
     fluessig: "#b57cf0",
     fluessigLeuchtet: 0.9,
     sockel: "#332a55",
@@ -173,6 +173,8 @@ export function baueInsel(
               emissiveIntensity: farben.fluessigLeuchtet,
               roughness: 0.62,
               metalness: 0,
+              vertexColors: true,
+              transparent: true,
             })
           : new THREE.MeshPhysicalMaterial({
               color: farben.fluessig,
@@ -181,8 +183,9 @@ export function baueInsel(
               transmission: 0.6,
               thickness: 0.35,
               ior: 1.33,
+              vertexColors: true,
               transparent: true,
-              opacity: 0.8,
+              opacity: 0.9,
               side: THREE.DoubleSide,
             }),
       );
@@ -195,7 +198,7 @@ export function baueInsel(
       wasser = (tief: boolean): void => {
         if (!(material instanceof THREE.MeshPhysicalMaterial)) return;
         material.transmission = tief ? 0.6 : 0;
-        material.opacity = tief ? 0.8 : 0.92;
+        material.opacity = tief ? 0.9 : 0.96;
         material.roughness = tief ? 0.08 : 0.16;
         material.needsUpdate = true;
       };
