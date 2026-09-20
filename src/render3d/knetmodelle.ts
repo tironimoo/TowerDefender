@@ -25,6 +25,7 @@
 import type { RohKasten, RohModell } from './meshbau';
 import { GEGNER } from './knetgegner';
 import { TUERME } from './knettuerme';
+import { BAUTEN } from './knetbauten';
 
 const ei = (
   pos: readonly [number, number, number],
@@ -248,5 +249,6 @@ export const KNETMODELLE: ReadonlyMap<string, RohModell> = new Map(
     ...GESCHOSSE,
     ...GEGNER,
     ...TUERME,
+    ...BAUTEN,
   ].map((m) => [m.id, m]),
 );

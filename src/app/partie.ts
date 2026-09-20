@@ -181,6 +181,32 @@ export class Partie {
     return this.welt.stufenName;
   }
 
+  get kamerastand(): { x: number; z: number; abstand: number; drehung: number; neigung: number } {
+    return this.welt.kamerastand;
+  }
+
+  /**
+   * Umrechnung in beide Richtungen, fuer die Pruefwerkzeuge.
+   *
+   * Sie brauchen beides, um das Schieben ueberhaupt pruefen zu koennen: ohne
+   * sie laesst sich nur beobachten, dass sich irgendetwas bewegt hat, nicht
+   * ob der Punkt unter dem Finger geblieben ist.
+   */
+  blickAuf(x: number, z: number, abstand: number, drehung?: number, neigung?: number): void {
+    this.welt.blickAuf(x, z, abstand, drehung, neigung);
+  }
+
+  punktUnter(sx: number, sy: number): { x: number; y: number } {
+    const punkt = { x: 0, y: 0 };
+    this.welt.zurKachel(sx, sy, punkt);
+    return punkt;
+  }
+
+  punktAuf(x: number, y: number): { x: number; y: number } {
+    const punkt = this.welt.aufBildschirm(x, y, 0);
+    return { x: punkt.x, y: punkt.y };
+  }
+
   get zeichenlast(): { befehle: number; dreiecke: number } {
     return { befehle: this.welt.letzteBefehle, dreiecke: this.welt.dreiecke };
   }
@@ -299,6 +325,7 @@ export class Partie {
       if (this.zeiger.size === 1) {
         this.startPunkt = { x: ereignis.clientX, y: ereignis.clientY };
         this.geschoben = false;
+        this.welt.greife(ereignis.clientX, ereignis.clientY);
       } else {
         this.letzterAbstand = this.zeigerAbstand();
         this.letzterWinkel = this.zeigerWinkel();
@@ -325,6 +352,7 @@ export class Partie {
         while (drehung > Math.PI) drehung -= Math.PI * 2;
         while (drehung < -Math.PI) drehung += Math.PI * 2;
         this.welt.drehe(drehung);
+        this.welt.laesstLos();
         this.letzterAbstand = abstand;
         this.letzterWinkel = winkel;
         this.geschoben = true;
@@ -340,18 +368,20 @@ export class Partie {
       // Mit gedrueckter Umschalttaste oder rechter Maustaste wird gedreht
       // statt geschoben - am Schreibtisch gibt es keinen zweiten Finger.
       if (ereignis.shiftKey || ereignis.buttons === 2) this.welt.drehe(-dx * 0.006, dy * 0.004);
-      else this.welt.verschiebe(dx, dy);
+      else this.welt.ziehe(ereignis.clientX, ereignis.clientY);
     });
 
     const beenden = (ereignis: PointerEvent): void => {
       const war = this.zeiger.size;
       this.zeiger.delete(ereignis.pointerId);
+      this.welt.laesstLos();
       if (this.zeiger.size < 2) this.letzterAbstand = 0;
       if (war === 1 && !this.geschoben) this.tippe(ereignis.clientX, ereignis.clientY);
     };
     flaeche.addEventListener('pointerup', beenden);
     flaeche.addEventListener('pointercancel', (ereignis) => {
       this.zeiger.delete(ereignis.pointerId);
+      this.welt.laesstLos();
       this.letzterAbstand = 0;
     });
     flaeche.addEventListener('contextmenu', (ereignis) => ereignis.preventDefault());

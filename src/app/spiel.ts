@@ -91,6 +91,16 @@ export class Spiel {
       // wuerde die Selbstregelung dort sofort auf die niedrigste Stufe
       // gehen, und die Bilder zeigten nicht, was ein echtes Geraet zeigt.
       haltStufe: (name: 'Hoch' | 'Mittel' | 'Sparsam') => this.partie?.haltStufe(name),
+      kamera: () => this.partie?.kamerastand ?? null,
+      punktUnter: (sx: number, sy: number) => this.partie?.punktUnter(sx, sy) ?? null,
+      blickAuf: (x: number, z: number, abstand: number, drehung?: number, neigung?: number) =>
+        this.partie?.blickAuf(x, z, abstand, drehung, neigung),
+      punktAuf: (x: number, y: number) => this.partie?.punktAuf(x, y) ?? null,
+      // Nur fuer die Sichtpruefung der Burgstufen. Sie greift in die
+      // Simulation ein und hat im Spiel nichts zu suchen.
+      setzeLeben: (rest: number) => {
+        if (this.partie !== null) this.partie.world.lives = rest;
+      },
       zustand: () => ({
         ansicht: this.ansicht,
         gold: this.partie?.world.gold ?? 0,

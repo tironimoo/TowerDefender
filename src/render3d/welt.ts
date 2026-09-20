@@ -24,6 +24,7 @@ import type { ModellBau } from './meshbau';
 import { setzeVerschmelzung } from './glatt';
 import { KNETMODELLE } from './knetmodelle';
 import { HOEHE } from './welt3d';
+import { orteDerKarte } from './orte';
 
 export type Auswahl = { art: 'platz' | 'turm'; index: number } | null;
 
@@ -74,6 +75,9 @@ export class Welt3D {
   private readonly geschossBilder = new Map<number, Bild>();
 
   private readonly markierung: THREE.Mesh;
+  /** Burgen am Ziel, je Stufe eine, von denen eine sichtbar ist. */
+  private readonly burgen: { gruppe: THREE.Group; stufen: THREE.Group[] }[] = [];
+  private letzterSchaden = -1;
   private readonly reichweitenRing: THREE.Mesh;
 
   // --- Kamera ---------------------------------------------------------------
@@ -136,7 +140,70 @@ export class Welt3D {
     this.markierung.renderOrder = 4;
     this.buehne.szene.add(this.markierung);
 
+    this.baueOrte();
     this.setzeKamera();
+  }
+
+  /**
+   * Hoehle am Anfang, Burg am Ende - fuer jeden Weg der Karte.
+   *
+   * Die Karten haben bis zu drei Wege, die sich Anfang und Ende teilen
+   * koennen. Deshalb wird nach Ort zusammengefasst: zwei Wege, die aus
+   * derselben Ecke kommen, bekommen eine Hoehle, nicht zwei uebereinander.
+   */
+  private baueOrte(): void {
+    for (const ort of orteDerKarte(this.level)) {
+      if (ort.art === 'hoehle') {
+        this.stelleHin('bau_hoehle', ort.x, ort.z, ort.drehung, 1.05);
+        continue;
+      }
+      const gruppe = new THREE.Group();
+      gruppe.position.set(ort.x, HOEHE.weg, ort.z);
+      gruppe.rotation.y = ort.drehung;
+      gruppe.scale.setScalar(0.95);
+      const stufen: THREE.Group[] = [];
+      for (let schaden = 0; schaden < 4; schaden++) {
+        const bau = holeModell(`bau_burg_s${schaden}`);
+        if (bau === null) continue;
+        const bild = alsGruppe(bau, this.buehne.materialien);
+        bild.gruppe.visible = schaden === 0;
+        gruppe.add(bild.gruppe);
+        stufen.push(bild.gruppe);
+      }
+      this.buehne.szene.add(gruppe);
+      this.burgen.push({ gruppe, stufen });
+    }
+  }
+
+  private stelleHin(id: string, x: number, z: number, drehung: number, groesse: number): void {
+    const bau = holeModell(id);
+    if (bau === null) return;
+    const bild = alsGruppe(bau, this.buehne.materialien);
+    bild.gruppe.position.set(x, HOEHE.weg, z);
+    bild.gruppe.rotation.y = drehung;
+    bild.gruppe.scale.setScalar(groesse);
+    this.buehne.szene.add(bild.gruppe);
+  }
+
+  /**
+   * Die Burg zeigt an, wie es steht.
+   *
+   * Vier Stufen auf die verbliebenen Leben verteilt. Gewechselt wird nur,
+   * wenn sich die Stufe wirklich aendert - sonst schaltet das Bild in jedem
+   * Bild um, und die Sichtbarkeit von acht Gruppen zu setzen ist teurer als
+   * ein Vergleich.
+   */
+  private zeigeSchaden(world: World): void {
+    const ganz = Math.max(1, world.level.lives);
+    const anteil = Math.max(0, Math.min(1, world.lives / ganz));
+    const schaden = anteil > 0.75 ? 0 : anteil > 0.45 ? 1 : anteil > 0.15 ? 2 : 3;
+    if (schaden === this.letzterSchaden) return;
+    this.letzterSchaden = schaden;
+    for (const burg of this.burgen) {
+      burg.stufen.forEach((gruppe, i) => {
+        gruppe.visible = i === schaden;
+      });
+    }
   }
 
   // --- Kamera ---------------------------------------------------------------
@@ -199,15 +266,61 @@ export class Welt3D {
     this.setzeKamera();
   }
 
-  /** Ein Finger schiebt: die Karte folgt dem Finger, nicht die Kamera. */
-  verschiebe(dx: number, dy: number): void {
-    const massstab = (this.abstand * 2 * Math.tan((this.buehne.kamera.fov * Math.PI) / 360)) / this.hoehe;
-    const vor = new THREE.Vector3(-Math.cos(this.drehung), 0, -Math.sin(this.drehung)).normalize();
-    const quer = new THREE.Vector3(-vor.z, 0, vor.x);
-    this.blick.addScaledVector(quer, -dx * massstab);
-    this.blick.addScaledVector(vor, -dy * massstab);
+  /**
+   * Schieben, als haelte man die Karte mit dem Finger fest.
+   *
+   * Der erste Anlauf rechnete Bildschirmpunkte in Weltmass um und schob die
+   * Kamera entsprechend. Nach links und rechts stimmte das ungefaehr, nach
+   * oben und unten nicht: der Boden liegt schraeg zur Blickrichtung, eine
+   * senkrechte Fingerbewegung ueberstreicht dort viel mehr Strecke als eine
+   * waagerechte. Das Verhaeltnis haengt an der Neigung und aendert sich,
+   * sobald jemand die Insel kippt - mit einem Faktor ist dem nicht
+   * beizukommen.
+   *
+   * Also wird gegriffen statt gerechnet: beim Aufsetzen merkt sich die Welt
+   * den Bodenpunkt unter dem Finger, und bei jeder Bewegung wandert der
+   * Blick so weit, dass genau dieser Punkt wieder unter dem Finger liegt.
+   * Das stimmt bei jeder Neigung, jedem Zoom und jeder Drehung, weil es
+   * nichts annimmt.
+   */
+  private readonly greifpunkt = new THREE.Vector3();
+  private greiftGerade = false;
+
+  greife(clientX: number, clientY: number): void {
+    this.greiftGerade = this.bodenPunkt(clientX, clientY, this.greifpunkt);
+  }
+
+  ziehe(clientX: number, clientY: number): void {
+    if (!this.greiftGerade) {
+      this.greife(clientX, clientY);
+      return;
+    }
+    const jetzt = new THREE.Vector3();
+    if (!this.bodenPunkt(clientX, clientY, jetzt)) return;
+    // Die Kamera haengt starr am Blickpunkt. Verschiebt man ihn um die
+    // Differenz, liegt der gegriffene Punkt wieder genau richtig.
+    this.blick.x += this.greifpunkt.x - jetzt.x;
+    this.blick.z += this.greifpunkt.z - jetzt.z;
     this.begrenze();
     this.setzeKamera();
+  }
+
+  laesstLos(): void {
+    this.greiftGerade = false;
+  }
+
+  /** Wo trifft der Strahl durch diesen Bildschirmpunkt den Boden? */
+  private bodenPunkt(clientX: number, clientY: number, ziel: THREE.Vector3): boolean {
+    const kasten = this.leinwand.getBoundingClientRect();
+    if (kasten.width <= 0 || kasten.height <= 0) return false;
+    this.strahl.setFromCamera(
+      new THREE.Vector2(
+        ((clientX - kasten.left) / kasten.width) * 2 - 1,
+        -((clientY - kasten.top) / kasten.height) * 2 + 1,
+      ),
+      this.buehne.kamera,
+    );
+    return this.strahl.ray.intersectPlane(this.ebene, ziel) !== null;
   }
 
   zoome(faktor: number): void {
@@ -226,6 +339,15 @@ export class Welt3D {
     const rand = 6;
     this.blick.x = Math.max(-rand, Math.min(this.level.breite + rand, this.blick.x));
     this.blick.z = Math.max(-rand, Math.min(this.level.hoehe + rand, this.blick.z));
+  }
+
+  /** Stellt die Kamera direkt. Nur fuer die Sichtpruefung. */
+  blickAuf(x: number, z: number, abstand: number, drehung?: number, neigung?: number): void {
+    this.blick.set(x, 0, z);
+    this.abstand = abstand;
+    if (drehung !== undefined) this.drehung = drehung;
+    if (neigung !== undefined) this.neigung = neigung;
+    this.setzeKamera();
   }
 
   ruettle(staerke: number, dauer = 0.25): void {
@@ -271,6 +393,17 @@ export class Welt3D {
 
   /** Zeichenbefehle des letzten Bildes. Fuer die Pruefwerkzeuge. */
   letzteBefehle = 0;
+
+  /** Kamerazustand. Nur fuer die Pruefwerkzeuge. */
+  get kamerastand(): { x: number; z: number; abstand: number; drehung: number; neigung: number } {
+    return {
+      x: +this.blick.x.toFixed(3),
+      z: +this.blick.z.toFixed(3),
+      abstand: +this.abstand.toFixed(2),
+      drehung: +this.drehung.toFixed(3),
+      neigung: +this.neigung.toFixed(3),
+    };
+  }
 
   get dreiecke(): number {
     return this.buehne.renderer.info.render.triangles;
@@ -337,15 +470,7 @@ export class Welt3D {
 
   /** Welche Kachel liegt unter diesem Punkt des Bildschirms? */
   zurKachel(clientX: number, clientY: number, ziel: { x: number; y: number }): void {
-    const kasten = this.leinwand.getBoundingClientRect();
-    this.strahl.setFromCamera(
-      new THREE.Vector2(
-        ((clientX - kasten.left) / kasten.width) * 2 - 1,
-        -((clientY - kasten.top) / kasten.height) * 2 + 1,
-      ),
-      this.buehne.kamera,
-    );
-    if (this.strahl.ray.intersectPlane(this.ebene, this.treffer) === null) {
+    if (!this.bodenPunkt(clientX, clientY, this.treffer)) {
       ziel.x = -999;
       ziel.y = -999;
       return;
@@ -434,6 +559,7 @@ export class Welt3D {
     this.aktualisiereTuerme(world);
     this.aktualisiereGeschosse(world);
     this.aktualisiereFlecken(world);
+    this.zeigeSchaden(world);
     this.effekte.aktualisiere(dt);
     const befehle = this.buehne.rendere(zeit);
     this.letzteBefehle = befehle;
@@ -573,6 +699,15 @@ export class Welt3D {
 
   setzeRequisitenFlecken(): void {
     let n = 0;
+    for (const ort of orteDerKarte(this.level)) {
+      this.buehne.bodenschatten.setze(
+        n++,
+        ort.x,
+        HOEHE.weg + 0.012,
+        ort.z,
+        ort.art === 'burg' ? 2.6 : 2.2,
+      );
+    }
     for (const prop of this.level.props) {
       const bau = holeModell(prop.model);
       if (bau === null) continue;

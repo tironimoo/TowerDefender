@@ -76,12 +76,39 @@ export interface Boden {
 }
 
 export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
-  const puffer = Math.round(RAND * TEILUNG);
+  // Das Feld muss weit genug reichen, dass die Randkacheln und ihre
+  // Boeschung hineinpassen. Zwei Kacheln ausserhalb der Karte sind bei den
+  // vorhandenen Karten der weiteste Fall.
+  const puffer = Math.round((RAND + 2) * TEILUNG);
   const nx = level.breite * TEILUNG + 1 + puffer * 2;
   const nz = level.hoehe * TEILUNG + 1 + puffer * 2;
 
+  // Die Wegkacheln ausserhalb der Karte zaehlen als fester Boden. Ohne sie
+  // endet die Insel genau dort, wo die Gegner erscheinen und verschwinden -
+  // sie liefen also die letzten beiden Schritte durch die Luft. Mit ihnen
+  // waechst an Zugang und Ausgang eine kurze Zunge, auf der Hoehle und Burg
+  // stehen koennen.
+  // Dazu ihre Nachbarn: aus zwei mal zwei Kacheln wird sonst ein
+  // Treppenstummel, der aussieht wie ein Fehler. Mit einer Kachel Rand
+  // ringsum wird daraus ein Vorplatz, auf dem Hoehle und Burg Platz haben.
+  const wegDraussen = new Set(level.randWeg.map((f) => `${f.x},${f.y}`));
+  const draussen = new Set<string>();
+  for (const feld of level.randWeg) {
+    for (let dz = -1; dz <= 1; dz++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = feld.x + dx;
+        const z = feld.y + dz;
+        if (x >= 0 && z >= 0 && x < level.breite && z < level.hoehe) continue;
+        draussen.add(`${x},${z}`);
+      }
+    }
+  }
+
   const art = (tx: number, tz: number): TileKind => {
-    if (tx < 0 || tz < 0 || tx >= level.breite || tz >= level.hoehe) return 'leer';
+    if (tx < 0 || tz < 0 || tx >= level.breite || tz >= level.hoehe) {
+      if (wegDraussen.has(`${tx},${tz}`)) return 'weg';
+      return draussen.has(`${tx},${tz}`) ? 'fels' : 'leer';
+    }
     return level.kacheln[tz * level.breite + tx] ?? 'leer';
   };
 
@@ -103,9 +130,14 @@ export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
     const tx1 = Math.ceil(x + WEICHE);
     const tz1 = Math.ceil(z + WEICHE);
     let summe = 0;
-    let leer = 0;
     let hoehe = 0;
     let wasser = 0;
+    // Abstand zur naechsten festen Kachel. Er entscheidet, wo die Insel
+    // aufhoert - und zwar unabhaengig davon, wie viele leere Kacheln
+    // daneben liegen. Mit einem Verhaeltnis aus fest und leer gerechnet
+    // versinkt jede schmale Zunge: die zwei Wegkacheln am Zugang haben mehr
+    // leere Nachbarn als feste und kamen deshalb unter der Boeschung heraus.
+    let naechste = Infinity;
     mischung.setRGB(0, 0, 0);
     for (let tz = tz0; tz <= tz1; tz++) {
       for (let tx = tx0; tx <= tx1; tx++) {
@@ -113,10 +145,8 @@ export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
         if (d >= 1) continue;
         const w = (1 - d) * (1 - d);
         const k = art(tx, tz);
-        if (k === 'leer') {
-          leer += w;
-          continue;
-        }
+        if (k === 'leer') continue;
+        naechste = Math.min(naechste, d * WEICHE);
         // Gras bekommt zwei Toene, aber nicht im Schachbrett: das Rauschen
         // entscheidet, und es wechselt langsamer als die Kacheln.
         const ton =
@@ -138,10 +168,11 @@ export function baueBoden(level: LevelDef, farben: BodenFarben): Boden {
         summe += w;
       }
     }
-    // Wie viel festes Land liegt hier in der Naehe? Am Rand faellt der Wert
-    // von eins auf null, und genau daran haengt die abfallende Boeschung.
-    // Ohne sie ist die Insel ein Blatt Papier.
-    const anteil = summe + leer > 0 ? summe / (summe + leer) : 0;
+    // Ueber jeder festen Kachel voll, danach weich auslaufend. Daran haengt
+    // die abfallende Boeschung; ohne sie ist die Insel ein Blatt Papier.
+    const roh = 1 - (naechste - 0.62) / (WEICHE - 0.62);
+    const gekappt = Math.max(0, Math.min(1, roh));
+    const anteil = gekappt * gekappt * (3 - 2 * gekappt);
     if (summe === 0) {
       return {
         hoehe: -ABFALL,
