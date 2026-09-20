@@ -152,7 +152,8 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   ziehtAb -= e.movementX * 0.006;
 });
 
-// Zwoelf Bilder je Sekunde, wie im Knetfilm.
+// In der Werkstatt darf der Knetfilmtakt bleiben: hier greift niemand ein,
+// und beim reinen Zuschauen wirkt er richtig.
 const TAKT = 12;
 let letzterTakt = -1;
 function bild(): void {

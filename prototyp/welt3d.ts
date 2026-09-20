@@ -105,6 +105,11 @@ export interface InselTeile {
   readonly gruppe: THREE.Group;
   readonly mitte: THREE.Vector3;
   readonly ausdehnung: number;
+  /**
+   * Schaltet das Wasser zwischen durchsichtig und einfach um.
+   * Null, wenn die Karte kein Wasser hat.
+   */
+  readonly wasser: ((tief: boolean) => void) | null;
 }
 
 export function baueInsel(
@@ -123,6 +128,7 @@ export function baueInsel(
   // Zwei Lesarten: als Hoehenfeld eine durchgehende Matte, oder wie bisher
   // ein Wuerfel je Kachel. Der Unterschied ist derselbe wie zwischen Ei und
   // Quader bei den Figuren - das Raster ist der Stil, nicht seine Aufteilung.
+  let wasser: ((tief: boolean) => void) | null = null;
   if (glatterBoden) {
     const boden = baueBoden(level, {
       gras: farben.boden,
@@ -151,6 +157,16 @@ export function baueInsel(
       );
       wasserNetz.renderOrder = 1;
       gruppe.add(wasserNetz);
+      // Durchsichtiges Wasser kostet einen eigenen Durchgang je Bild. Auf
+      // schwachen Geraeten wird daraus eine spiegelnde Flaeche ohne Tiefe -
+      // das sieht immer noch nach Giessharz aus und kostet nichts.
+      const material = wasserNetz.material;
+      wasser = (tief: boolean): void => {
+        material.transmission = tief ? 0.6 : 0;
+        material.opacity = tief ? 0.8 : 0.92;
+        material.roughness = tief ? 0.08 : 0.16;
+        material.needsUpdate = true;
+      };
     }
   }
 
@@ -263,6 +279,7 @@ export function baueInsel(
     gruppe,
     mitte: new THREE.Vector3(level.breite / 2, 0, level.hoehe / 2),
     ausdehnung: Math.max(level.breite, level.hoehe),
+    wasser,
   };
 }
 

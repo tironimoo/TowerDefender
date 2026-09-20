@@ -16,6 +16,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 
 import { loadContent } from '@data/index';
 import type { Enemy, World } from '@sim/index';
@@ -43,13 +44,77 @@ interface Stufe {
   readonly schatten: number;
   readonly bluehen: boolean;
   readonly tiltShift: boolean;
+  /** Kantenglaettung als eigener Durchgang. Der teuerste sichtbare Posten. */
+  readonly kanten: boolean;
   readonly aufloesung: number;
+  /** Wachsglanz, Daumenabdruecke: ohne sie wird aus Knete Kunststoff. */
+  readonly lack: number;
+  readonly korn: number;
+  /** Durchsichtiges Wasser kostet einen eigenen Durchgang je Bild. */
+  readonly tiefesWasser: boolean;
+  /** Wie viele Fackeln wirklich leuchten. */
+  readonly lichter: number;
 }
+
+/**
+ * Die drei Stufen liegen bewusst weit auseinander.
+ *
+ * Beim ersten Anlauf unterschieden sie sich nur in Schattenaufloesung und
+ * Bildpunkten, und das sieht man auf einem Telefon schlicht nicht. Jetzt
+ * faellt bei jeder Stufe etwas weg, das man benennen kann: die
+ * Kantenglaettung, der Wachsglanz, das durchsichtige Wasser, die
+ * Fackellichter.
+ */
 const STUFEN: readonly Stufe[] = [
-  { name: 'Hoch', schatten: 2048, bluehen: true, tiltShift: true, aufloesung: 2 },
-  { name: 'Mittel', schatten: 1024, bluehen: true, tiltShift: true, aufloesung: 1.5 },
-  { name: 'Sparsam', schatten: 1024, bluehen: false, tiltShift: false, aufloesung: 1 },
+  {
+    name: 'Hoch',
+    schatten: 2048,
+    bluehen: true,
+    tiltShift: true,
+    kanten: true,
+    aufloesung: 2,
+    lack: 1,
+    korn: 1,
+    tiefesWasser: true,
+    lichter: 6,
+  },
+  {
+    name: 'Mittel',
+    schatten: 1024,
+    bluehen: true,
+    tiltShift: false,
+    kanten: false,
+    aufloesung: 1.35,
+    lack: 0.35,
+    korn: 0.5,
+    tiefesWasser: false,
+    lichter: 3,
+  },
+  {
+    name: 'Sparsam',
+    schatten: 0,
+    bluehen: false,
+    tiltShift: false,
+    kanten: false,
+    aufloesung: 1,
+    lack: 0,
+    korn: 0,
+    tiefesWasser: false,
+    lichter: 0,
+  },
 ];
+
+// Bilder je Sekunde, in denen die Szene nachgefuehrt wird. Null heisst: in
+// jedem Bild.
+//
+// Aus, und zwar aus einem guten Grund: der Knetfilmtakt sieht in einem Film
+// richtig aus und in einem Spiel nach Rucklern. Der Unterschied ist, dass
+// man beim Spielen selbst eingreift - und eine Eingabe, die erst beim
+// naechsten Takt ankommt, fuehlt sich kaputt an, nicht handgemacht. Der
+// Regler bleibt zum Ausprobieren stehen.
+let taktBilder = 0;
+let letzterTakt = -1;
+let zappeln = 0;
 
 const gefunden = document.getElementById('buehne');
 if (gefunden === null) throw new Error('Buehne fehlt.');
@@ -229,10 +294,6 @@ const fackelLichter = fackeln.map((prop) => {
   szene.add(licht);
   return licht;
 });
-function setzeFackeln(staerke: number): void {
-  for (const licht of fackelLichter) licht.intensity = staerke;
-}
-
 // Ein Fleck je Turm, je Requisite und je Gegner, mit Luft nach oben.
 const bodenschatten = baueBodenschatten(400);
 szene.add(bodenschatten.netz);
@@ -362,6 +423,10 @@ const tiltSenkrecht = new ShaderPass(TiltShiftShader);
 const senkrechtWert = tiltSenkrecht.uniforms['senkrecht'];
 if (senkrechtWert !== undefined) senkrechtWert.value = 1;
 const abzug = new ShaderPass(AbzugShader);
+// Kantenglaettung ganz am Ende, nach der Tonwertkurve: davor liegen die
+// Helligkeiten noch im linearen Raum, und dort sucht der Durchgang die
+// Kanten an den falschen Stellen.
+const kanten = new SMAAPass();
 const ausgabe = new OutputPass();
 
 /** Greift ein Uniform eines Durchgangs, ohne bei Tippfehlern still zu werden. */
@@ -381,6 +446,28 @@ function baueKette(): void {
   }
   komponist.addPass(abzug);
   komponist.addPass(ausgabe);
+  if (stufe.kanten) komponist.addPass(kanten);
+}
+
+/**
+ * Die Regler setzen Grundwerte, die Stufe daempft sie.
+ *
+ * Beides an dieselben Felder zu schreiben waere ein Kampf: die Stufe wuerde
+ * ueberschreiben, was der Regler gerade eingestellt hat, und umgekehrt.
+ * Deshalb steht hier, was der Mensch will, und wendeAn rechnet aus, was das
+ * Geraet davon bekommt.
+ */
+const grund = { lack: 0.35, korn: 0.5, beulen: 0.4, fackeln: 1.5 };
+
+function wendeAn(): void {
+  materialFest.clearcoat = grund.lack * stufe.lack;
+  materialienGegner.fest.clearcoat = grund.lack * stufe.lack;
+  knetWerte.korn.value = grund.korn * stufe.korn;
+  knetWerte.beulen.value = grund.beulen * stufe.korn;
+  fackelLichter.forEach((licht, i) => {
+    licht.intensity = i < stufe.lichter ? grund.fackeln : 0;
+  });
+  insel.wasser?.(stufe.tiefesWasser);
 }
 
 function setzeStufe(neu: Stufe): void {
@@ -392,8 +479,11 @@ function setzeStufe(neu: Stufe): void {
     sonne.shadow.map?.dispose();
     sonne.shadow.map = null;
   }
+  wendeAn();
   baueKette();
   passeGroesseAn();
+  const taste = document.getElementById('stufe');
+  if (taste !== null) taste.textContent = neu.name;
 }
 
 function passeGroesseAn(): void {
@@ -404,6 +494,7 @@ function passeGroesseAn(): void {
   renderer.setSize(b, h, false);
   komponist.setPixelRatio(dpr);
   komponist.setSize(b, h);
+  kanten.setSize(b * dpr, h * dpr);
   kamera.aspect = b / h;
   kamera.updateProjectionMatrix();
   bluehen.resolution.set(b, h);
@@ -451,7 +542,7 @@ const STIMMUNGEN: readonly Stimmung[] = [
     },
     werte: {
       belichtung: 1.05, sonne: 3.0, gegenlicht: 1.5, himmelslicht: 2.9,
-      fackeln: 1.5, kontakt: 0.62, kehlen: 1.0, dunst: 0.004, korn: 0.7, beulen: 0.5, randlicht: 0.3,
+      fackeln: 1.5, takt: 0, zappeln: 0, kontakt: 0.62, kehlen: 1.0, dunst: 0.004, korn: 0.7, beulen: 0.5, randlicht: 0.3,
       bluehen: 0.12, unschaerfe: 13, koernung: 0.05, abschattung: 0.3,
       saettigung: 0.94, toenung: 0.22, rauheit: 0.62, lack: 0.35,
     },
@@ -468,7 +559,7 @@ const STIMMUNGEN: readonly Stimmung[] = [
     },
     werte: {
       belichtung: 1.25, sonne: 5.6, gegenlicht: 2.0, himmelslicht: 3.6,
-      fackeln: 5.0, kontakt: 0.5, kehlen: 0.95, dunst: 0.005, korn: 0.6, beulen: 0.45, randlicht: 0.5,
+      fackeln: 5.0, takt: 0, zappeln: 0, kontakt: 0.5, kehlen: 0.95, dunst: 0.005, korn: 0.6, beulen: 0.45, randlicht: 0.5,
       bluehen: 0.3, unschaerfe: 15, koernung: 0.05, abschattung: 0.42,
       saettigung: 1.02, toenung: 0.34, rauheit: 0.6, lack: 0.38,
     },
@@ -483,7 +574,7 @@ const STIMMUNGEN: readonly Stimmung[] = [
     },
     werte: {
       belichtung: 1.75, sonne: 2.6, gegenlicht: 2.8, himmelslicht: 3.8,
-      fackeln: 13.0, kontakt: 0.5, kehlen: 0.8, dunst: 0.005, korn: 0.5, beulen: 0.4, randlicht: 0.6,
+      fackeln: 13.0, takt: 0, zappeln: 0, kontakt: 0.5, kehlen: 0.8, dunst: 0.005, korn: 0.5, beulen: 0.4, randlicht: 0.6,
       bluehen: 0.7, unschaerfe: 12, koernung: 0.06, abschattung: 0.38,
       saettigung: 1.02, toenung: 0.3, rauheit: 0.58, lack: 0.4,
     },
@@ -498,7 +589,7 @@ const STIMMUNGEN: readonly Stimmung[] = [
     },
     werte: {
       belichtung: 1.0, sonne: 2.8, gegenlicht: 2.0, himmelslicht: 2.6,
-      fackeln: 0.0, kontakt: 0.7, kehlen: 1.25, dunst: 0.002, korn: 0.8, beulen: 0.6, randlicht: 0.22,
+      fackeln: 0.0, takt: 0, zappeln: 0, kontakt: 0.7, kehlen: 1.25, dunst: 0.002, korn: 0.8, beulen: 0.6, randlicht: 0.22,
       bluehen: 0.1, unschaerfe: 18, koernung: 0.035, abschattung: 0.38,
       saettigung: 0.9, toenung: 0.08, rauheit: 0.42, lack: 0.6,
     },
@@ -513,12 +604,12 @@ const bedienfeld = baueBedienfeld(
     {
       name: 'Knete',
       regler: [
-        { id: 'korn', name: 'Daumenabdruecke', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.korn.value, zeige: prozent, setze: (w) => { knetWerte.korn.value = w; } },
-        { id: 'beulen', name: 'Beulen', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.beulen.value, zeige: prozent, setze: (w) => { knetWerte.beulen.value = w; } },
+        { id: 'korn', name: 'Daumenabdruecke', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.korn.value, zeige: prozent, setze: (w) => { grund.korn = w; wendeAn(); } },
+        { id: 'beulen', name: 'Beulen', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.beulen.value, zeige: prozent, setze: (w) => { grund.beulen = w; wendeAn(); } },
         { id: 'feinheit', name: 'Koernung', von: 6, bis: 60, schritt: 1, wert: knetWerte.kornFeinheit.value, zeige: (w) => w.toFixed(0), setze: (w) => { knetWerte.kornFeinheit.value = w; } },
         { id: 'randlicht', name: 'Durchscheinen', von: 0, bis: 1.2, schritt: 0.05, wert: knetWerte.rand.value, zeige: prozent, setze: (w) => { knetWerte.rand.value = w; } },
         { id: 'rauheit', name: 'Mattheit', von: 0.15, bis: 1, schritt: 0.02, wert: materialFest.roughness, zeige: prozent, setze: (w) => { materialFest.roughness = w; materialienGegner.fest.roughness = w; } },
-        { id: 'lack', name: 'Wachsglanz', von: 0, bis: 1, schritt: 0.02, wert: materialFest.clearcoat, zeige: prozent, setze: (w) => { materialFest.clearcoat = w; materialienGegner.fest.clearcoat = w; } },
+        { id: 'lack', name: 'Wachsglanz', von: 0, bis: 1, schritt: 0.02, wert: materialFest.clearcoat, zeige: prozent, setze: (w) => { grund.lack = w; wendeAn(); } },
       ],
     },
     {
@@ -528,7 +619,7 @@ const bedienfeld = baueBedienfeld(
         { id: 'sonne', name: 'Fuehrungslicht', von: 0, bis: 6, schritt: 0.1, wert: sonne.intensity, setze: (w) => { sonne.intensity = w; } },
         { id: 'gegenlicht', name: 'Gegenlicht', von: 0, bis: 4, schritt: 0.1, wert: gegenlicht.intensity, setze: (w) => { gegenlicht.intensity = w; } },
         { id: 'himmelslicht', name: 'Himmelslicht', von: 0, bis: 4, schritt: 0.1, wert: himmelslicht.intensity, setze: (w) => { himmelslicht.intensity = w; } },
-        { id: 'fackeln', name: 'Fackelschein', von: 0, bis: 14, schritt: 0.2, wert: 0, zeige: (w) => w.toFixed(1), setze: setzeFackeln },
+        { id: 'fackeln', name: 'Fackelschein', von: 0, bis: 14, schritt: 0.2, wert: 0, zeige: (w) => w.toFixed(1), setze: (w) => { grund.fackeln = w; wendeAn(); } },
         { id: 'sonnenrichtung', name: 'Sonnenrichtung', von: 0, bis: 6.28, schritt: 0.02, wert: sonnenStand.richtung, zeige: (w) => `${Math.round((w * 180) / Math.PI)}\u00b0`, setze: (w) => { sonnenStand.richtung = w; setzeSonne(); } },
         { id: 'sonnenhoehe', name: 'Sonnenhoehe', von: 0.08, bis: 1.4, schritt: 0.02, wert: sonnenStand.hoehe, zeige: (w) => `${Math.round((w * 180) / Math.PI)}\u00b0`, setze: (w) => { sonnenStand.hoehe = w; setzeSonne(); } },
         { id: 'kehlen', name: 'Kehlschatten', von: 0, bis: 1.6, schritt: 0.05, wert: knetWerte.kehle.value, zeige: prozent, setze: (w) => { knetWerte.kehle.value = w; } },
@@ -539,8 +630,8 @@ const bedienfeld = baueBedienfeld(
     {
       name: 'Aufnahme',
       regler: [
-        { id: 'takt', name: 'Stop-Motion', von: 0, bis: 30, schritt: 1, wert: 12, zeige: (w) => (w <= 0 ? 'aus' : `${w.toFixed(0)}/s`), setze: (w) => { taktBilder = w; } },
-        { id: 'zappeln', name: 'Zappeln', von: 0, bis: 0.06, schritt: 0.002, wert: 0.012, zeige: (w) => `${(w * 100).toFixed(1)}`, setze: (w) => { zappeln = w; } },
+        { id: 'takt', name: 'Stop-Motion', von: 0, bis: 30, schritt: 1, wert: 0, zeige: (w) => (w <= 0 ? 'aus' : `${w.toFixed(0)}/s`), setze: (w) => { taktBilder = w; } },
+        { id: 'zappeln', name: 'Zappeln', von: 0, bis: 0.06, schritt: 0.002, wert: 0, zeige: (w) => (w <= 0 ? 'aus' : (w * 100).toFixed(1)), setze: (w) => { zappeln = w; } },
       ],
     },
     {
@@ -623,12 +714,6 @@ formTaste?.addEventListener('click', () => {
   naechste.set('form', LESARTEN[(LESARTEN.indexOf(lesart) + 1) % LESARTEN.length] as string);
   location.search = naechste.toString();
 });
-// Bilder je Sekunde, in denen die Szene nachgefuehrt wird. Null heisst: in
-// jedem Bild, also fluessig wie bisher.
-let taktBilder = 12;
-let letzterTakt = -1;
-let zappeln = 0.012;
-
 let drehenAn = true;
 document.getElementById('drehen')?.addEventListener('click', () => {
   drehenAn = !drehenAn;
