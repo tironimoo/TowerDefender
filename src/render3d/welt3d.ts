@@ -69,7 +69,7 @@ export const REGIONEN: Readonly<Record<Region, RegionFarben>> = {
   },
   leere: {
     boden: ["#463c6b", "#3f3565"],
-    weg: "#9585c8",
+    weg: "#8878b8",
     fluessig: "#b57cf0",
     fluessigLeuchtet: 0.9,
     sockel: "#332a55",
