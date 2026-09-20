@@ -20,7 +20,7 @@ import { setzeVerschmelzung } from './glatt';
 import { knetWerte, machKnete } from './knete';
 import { baueHimmel } from './himmel';
 import { baueBodenschatten } from './bodenschatten';
-import { BAUM_KNET, FIGUR_KNET } from './knetfiguren';
+import { KNETMODELLE } from './knetmodelle';
 
 const gefunden = document.getElementById('buehne');
 if (gefunden === null) throw new Error('Buehne fehlt.');
@@ -96,11 +96,17 @@ function hole(id: string): RohModell {
   return m;
 }
 
+function knet(id: string): RohModell {
+  const m = KNETMODELLE.get(id);
+  if (m === undefined) throw new Error(`Knetmodell ${id} fehlt.`);
+  return m;
+}
+
 const reihe: readonly { modell: RohModell; x: number; tempo: number }[] = [
   { modell: hole('prop_baum'), x: -4.2, tempo: 1.1 },
   { modell: hole('moderling'), x: -1.4, tempo: 5.5 },
-  { modell: BAUM_KNET, x: 1.4, tempo: 1.1 },
-  { modell: FIGUR_KNET, x: 4.2, tempo: 5.5 },
+  { modell: knet('prop_baum'), x: 1.4, tempo: 1.1 },
+  { modell: knet('moderling'), x: 4.2, tempo: 5.5 },
 ];
 
 interface Stueck {

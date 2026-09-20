@@ -22,7 +22,7 @@ import type { Enemy, World } from '@sim/index';
 import { applyCommand, createWorld, step, TICKS_PER_SECOND } from '@sim/index';
 
 import type { ModellBau, RohModell } from './meshbau';
-import { alsGruppe, bauform, baueModell, bewege, setzeBauform, setzeKantenbruch, VOXEL } from './meshbau';
+import { alsGruppe, baueModell, bewege, setzeBauform, setzeKantenbruch, VOXEL } from './meshbau';
 import { setzeVerschmelzung } from './glatt';
 import { baueInsel, HOEHE, REGIONEN } from './welt3d';
 import { TiltShiftShader } from './tiltshift';
@@ -32,6 +32,7 @@ import { baueBedienfeld } from './regler';
 import type { Stimmung } from './regler';
 import { baueHimmel } from './himmel';
 import { baueBodenschatten } from './bodenschatten';
+import { KNETMODELLE } from './knetmodelle';
 
 const LEVEL = 'level-01';
 
@@ -177,7 +178,19 @@ const materialienGegner = {
 const parameter = new URLSearchParams(location.search);
 const kante = Number(parameter.get('kante') ?? '0.28');
 setzeKantenbruch(Number.isFinite(kante) ? Math.max(0, Math.min(0.49, kante)) : 0.28);
-setzeBauform(parameter.get('form') === 'klotz' ? 'klotz' : 'glatt');
+// Drei Lesarten, die sich mit der Taste "Form" durchschalten lassen:
+//   knet   - Modelle aus Eiern und Wuersten, als Huelle gebaut
+//   glatt  - die Spielmodelle aus Quadern, als Huelle gebaut
+//   klotz  - die Spielmodelle als Quader, wie im alten Renderer
+// Dazwischen liegt der ganze Unterschied zwischen Knetfilm und Minecraft,
+// und die Taste zeigt genau das.
+const LESARTEN = ['knet', 'glatt', 'klotz'] as const;
+type Lesart = (typeof LESARTEN)[number];
+const gewuenscht = parameter.get('form') ?? 'knet';
+const lesart: Lesart = (LESARTEN as readonly string[]).includes(gewuenscht)
+  ? (gewuenscht as Lesart)
+  : 'knet';
+setzeBauform(lesart === 'klotz' ? 'klotz' : 'glatt');
 const weichheit = Number(parameter.get('weich') ?? '0.5');
 if (Number.isFinite(weichheit)) setzeVerschmelzung(Math.max(0, Math.min(3, weichheit)));
 
@@ -192,10 +205,13 @@ if (!antwort.ok) {
 }
 const roh = (await antwort.json()) as { modelle: Record<string, RohModell> };
 const modelle = new Map<string, ModellBau>();
-for (const [id, m] of Object.entries(roh.modelle)) modelle.set(id, baueModell(m));
+for (const [id, m] of Object.entries(roh.modelle)) {
+  const quelle = lesart === 'knet' ? (KNETMODELLE.get(id) ?? m) : m;
+  modelle.set(id, baueModell(quelle));
+}
 
 // --- Insel -----------------------------------------------------------------
-const insel = baueInsel(level, modelle, materialien);
+const insel = baueInsel(level, modelle, materialien, lesart === 'knet');
 szene.add(insel.gruppe);
 
 // --- Fackellicht -----------------------------------------------------------
@@ -443,13 +459,15 @@ const STIMMUNGEN: readonly Stimmung[] = [
   {
     name: 'Abendsonne',
     dann: () => {
-      stelleSzene('#131f4a', '#2e1c30', '#ff9a4e', '#3a2a42', '#ffc68a', '#6f92e0', '#9aa8d8', '#5a3c30', '#ff8a52');
-      sonnenStand.richtung = 0.9;
-      sonnenStand.hoehe = 0.3;
+      stelleSzene('#28407e', '#7a4a3a', '#ff9e52', '#5a4048', '#ffcb92', '#6f92e0', '#b4bce0', '#6a4636', '#ff8a52');
+      // Das Licht muss auf die Seite, die die Kamera sieht. Beim ersten
+      // Anlauf stand es dahinter, und die Insel lag im eigenen Schatten.
+      sonnenStand.richtung = 0.65;
+      sonnenStand.hoehe = 0.4;
       setzeSonne();
     },
     werte: {
-      belichtung: 1.25, sonne: 5.4, gegenlicht: 2.1, himmelslicht: 3.0,
+      belichtung: 1.25, sonne: 5.6, gegenlicht: 2.0, himmelslicht: 3.6,
       fackeln: 5.0, kontakt: 0.5, kehlen: 0.95, dunst: 0.005, korn: 0.6, beulen: 0.45, randlicht: 0.5,
       bluehen: 0.3, unschaerfe: 15, koernung: 0.05, abschattung: 0.42,
       saettigung: 1.02, toenung: 0.34, rauheit: 0.6, lack: 0.38,
@@ -596,9 +614,13 @@ document.getElementById('stufe')?.addEventListener('click', () => {
 // Die Bauform steckt in den Modellen, die beim Laden entstehen. Statt alles
 // im Betrieb neu aufzubauen, laedt die Taste die Seite mit der anderen Form -
 // im Prototyp der ehrlichere Weg, weil nichts halb umgestellt sein kann.
-document.getElementById('form')?.addEventListener('click', () => {
+const formTaste = document.getElementById('form');
+if (formTaste !== null) {
+  formTaste.textContent = lesart === 'knet' ? 'Knete' : lesart === 'glatt' ? 'Geschliffen' : 'Klötzchen';
+}
+formTaste?.addEventListener('click', () => {
   const naechste = new URLSearchParams(location.search);
-  naechste.set('form', bauform === 'glatt' ? 'klotz' : 'glatt');
+  naechste.set('form', LESARTEN[(LESARTEN.indexOf(lesart) + 1) % LESARTEN.length] as string);
   location.search = naechste.toString();
 });
 // Bilder je Sekunde, in denen die Szene nachgefuehrt wird. Null heisst: in
