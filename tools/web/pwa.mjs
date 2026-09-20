@@ -41,7 +41,6 @@ const geruest = alle.filter(
     (p === 'index.html' ||
       p === 'manifest.webmanifest' ||
       p === 'symbol-512.png' ||
-      p === 'atlas/index.json' ||
       p.startsWith('assets/')),
 );
 const rest = alle.filter((p) => !geruest.includes(p));

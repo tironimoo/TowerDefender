@@ -61,6 +61,11 @@ body {
   touch-action: none;
 }
 
+#feld {
+  position: absolute;
+  inset: 0;
+}
+
 #spielfeld canvas {
   display: block;
   width: 100%;

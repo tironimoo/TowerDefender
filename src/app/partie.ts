@@ -6,16 +6,9 @@
  * Geraet kann. Siehe docs/03-architektur.md, Abschnitt Zeit.
  */
 
-import type { Application} from 'pixi.js';
-import { Container } from 'pixi.js';
 import type { Boni, Content, Difficulty, LevelDef, SimEvent, World } from '@sim/index';
 import { applyCommand, createWorld, drainEvents, step, TICKS_PER_SECOND } from '@sim/index';
-import { atlas } from '@render/atlas';
-import { baueKarte, blaetterFuer } from '@render/karte';
-import type { KartenBild } from '@render/karte';
-import { Szene } from '@render/szene';
-import { zuBildschirm, zuKachel } from '@render/projektion';
-import { Kamera } from './kamera';
+import { baueModelleVor, Welt3D } from '@render3d/welt';
 import { Hud } from '@ui/hud';
 import { Schweber } from '@ui/schweber';
 import { Ansage } from '@ui/ansage';
@@ -29,7 +22,8 @@ const SCHRITT_MS = 1000 / TICKS_PER_SECOND;
 const SCHIEBE_SCHWELLE = 8;
 
 export interface PartieOptionen {
-  readonly app: Application;
+  /** Wohin die Leinwaende gehaengt werden. */
+  readonly wurzel: HTMLElement;
   readonly content: Content;
   readonly level: LevelDef;
   readonly loadout: readonly string[];
@@ -51,12 +45,9 @@ type Auswahl = { art: 'platz'; index: number } | { art: 'turm'; index: number } 
 export class Partie {
   readonly world: World;
   readonly hud: Hud;
-  private readonly wurzel = new Container();
-  private readonly szene = new Szene();
+  private readonly welt: Welt3D;
   private readonly schweber: Schweber;
   private readonly ansage = new Ansage();
-  private readonly kamera: Kamera;
-  private readonly karte: KartenBild;
   private auswahl: Auswahl = null;
   /** Turm, dessen Reichweite gerade vorgezeigt wird. */
   private vorschauTurm: string | null = null;
@@ -67,6 +58,7 @@ export class Partie {
   private startPunkt = { x: 0, y: 0 };
   private geschoben = false;
   private letzterAbstand = 0;
+  private letzterWinkel = 0;
   private readonly hilfsPunkt = { x: 0, y: 0 };
 
   constructor(private readonly optionen: PartieOptionen) {
@@ -82,20 +74,11 @@ export class Partie {
       endlos: optionen.endlos,
     });
 
-    this.karte = baueKarte(optionen.level);
-    // Der Boden aendert sich nie. Als eine einzige Textur zwischengespeichert
-    // wird aus mehreren hundert Zeichenaufrufen je Bild genau einer.
-    this.karte.boden.cacheAsTexture(true);
-    this.szene.fuegeRequisitenEin(this.karte.requisiten);
-    this.wurzel.addChild(this.karte.boden, this.szene.welt, this.szene.ueberlagerung);
-    optionen.app.stage.addChild(this.wurzel);
-
-    this.kamera = new Kamera(
-      this.wurzel,
-      this.karte,
-      optionen.app.screen.width,
-      optionen.app.screen.height,
-    );
+    this.welt = new Welt3D(optionen.level);
+    optionen.wurzel.append(this.welt.leinwand, this.welt.anzeige.leinwand);
+    this.welt.setzeGroesse(optionen.wurzel.clientWidth, optionen.wurzel.clientHeight);
+    this.welt.setzeRequisitenFlecken();
+    this.welt.passeAn();
 
     this.hud = new Hud({
       beiWelleStarten: () => this.befehl({ type: 'welle-starten' }),
@@ -140,7 +123,7 @@ export class Partie {
     });
     this.hud.element.append(this.ansage.element, this.schweber.element);
 
-    this.verbindeEingabe(optionen.app);
+    this.verbindeEingabe();
   }
 
   /** Laedt alle Sprite-Blaetter, die diese Karte braucht. */
@@ -149,7 +132,11 @@ export class Partie {
     level: LevelDef,
     loadout: readonly string[],
   ): Promise<void> {
-    await atlas.lade(blaetterFuer(content, level, loadout));
+    // Die Modelle entstehen aus Abstandsfeldern; das dauert je Modell einen
+    // Wimpernschlag und soll nicht mitten im ersten Angriff passieren.
+    void content;
+    baueModelleVor(level, loadout);
+    await Promise.resolve();
   }
 
   /**
@@ -159,12 +146,10 @@ export class Partie {
    */
   bauplatzPunkte(): { x: number; y: number; belegt: boolean; aufWeg: boolean }[] {
     return this.world.level.buildSlots.map((slot, index) => {
-      zuBildschirm(slot.x, slot.y, this.hilfsPunkt);
-      const welt = { x: this.hilfsPunkt.x, y: this.hilfsPunkt.y };
-      this.kamera.zumBildschirm(welt.x, welt.y, this.hilfsPunkt);
+      const punkt = this.welt.aufBildschirm(slot.x, slot.y, 0.2);
       return {
-        x: this.hilfsPunkt.x,
-        y: this.hilfsPunkt.y,
+        x: punkt.x,
+        y: punkt.y,
         belegt: this.world.occupiedSlots.has(index),
         aufWeg: slot.aufWeg,
       };
@@ -172,13 +157,12 @@ export class Partie {
   }
 
   zerstoere(): void {
-    this.szene.leere();
-    this.wurzel.destroy({ children: true });
+    this.welt.zerstoere();
     this.hud.element.remove();
   }
 
   passeGroesseAn(breite: number, hoehe: number): void {
-    this.kamera.setzeBildschirm(breite, hoehe);
+    this.welt.setzeGroesse(breite, hoehe);
   }
 
   private befehl(befehl: Parameters<typeof applyCommand>[1]): void {
@@ -205,7 +189,7 @@ export class Partie {
       if (this.restMs > SCHRITT_MS * 12) this.restMs = 0;
 
       const ereignisse = drainEvents(this.world);
-      this.szene.verarbeite(ereignisse, this.world);
+      this.welt.verarbeite(ereignisse, this.world);
       klang.ausEreignissen(ereignisse);
       this.verarbeiteAnsagen(ereignisse);
 
@@ -216,8 +200,8 @@ export class Partie {
     }
 
     this.haltMenueAktuell();
-    this.kamera.aktualisiere(dtMs / 1000, this.world.tick);
-    this.szene.zeichne(this.world, (dtMs / 1000) * this.tempo);
+    this.welt.aktualisiereKamera(dtMs / 1000);
+    this.welt.zeichne(this.world, (dtMs / 1000) * this.tempo, jetzt / 1000);
     this.hud.aktualisiere(this.world, jetzt);
     this.ansage.aktualisiere(this.world, jetzt);
     this.zeigeAuswahl();
@@ -261,21 +245,21 @@ export class Partie {
           this.hud.zeigeMeldung(`Welle ${ereignis.wave} abgeraeumt · +${ereignis.reward} Gold`);
           break;
         case 'gegner-durch':
-          this.kamera.ruettle(7);
+          this.welt.ruettle(7);
           vibriere('durchbruch', this.optionen.vibration);
           break;
         case 'faehigkeit-gelernt':
           this.hud.zeigeMeldung(`${ereignis.name} · Rang ${ereignis.rang}`);
           break;
         case 'bossphase':
-          this.kamera.ruettle(11, 0.45);
+          this.welt.ruettle(11, 0.45);
           this.ansage.zeige('Der Boss veraendert sich', 'Panzerung und Tempo wechseln', 1600);
           break;
         case 'gewonnen':
           this.ansage.zeige('Geschafft', '', 1200);
           break;
         case 'verloren':
-          this.kamera.ruettle(14, 0.6);
+          this.welt.ruettle(14, 0.6);
           break;
         default:
           break;
@@ -285,9 +269,8 @@ export class Partie {
 
   // --- Eingabe -------------------------------------------------------------
 
-  private verbindeEingabe(app: Application): void {
-    const flaeche = app.canvas;
-    flaeche.style.touchAction = 'none';
+  private verbindeEingabe(): void {
+    const flaeche = this.welt.leinwand;
 
     flaeche.addEventListener('pointerdown', (ereignis) => {
       flaeche.setPointerCapture(ereignis.pointerId);
@@ -297,6 +280,7 @@ export class Partie {
         this.geschoben = false;
       } else {
         this.letzterAbstand = this.zeigerAbstand();
+        this.letzterWinkel = this.zeigerWinkel();
       }
     });
 
@@ -308,19 +292,34 @@ export class Partie {
       this.zeiger.set(ereignis.pointerId, { x: ereignis.clientX, y: ereignis.clientY });
 
       if (this.zeiger.size >= 2) {
+        // Zwei Finger: auseinander zieht heran, verdrehen dreht die Insel.
+        // Das Drehen ist der Grund, warum das Spiel ueberhaupt raeumlich ist -
+        // ohne es waere die dritte Dimension nur Zierde.
         const abstand = this.zeigerAbstand();
         if (this.letzterAbstand > 0 && abstand > 0) {
-          const mitte = this.zeigerMitte();
-          this.kamera.zoome(abstand / this.letzterAbstand, mitte.x, mitte.y);
+          this.welt.zoome(abstand / this.letzterAbstand);
         }
+        const winkel = this.zeigerWinkel();
+        let drehung = winkel - this.letzterWinkel;
+        while (drehung > Math.PI) drehung -= Math.PI * 2;
+        while (drehung < -Math.PI) drehung += Math.PI * 2;
+        this.welt.drehe(drehung);
         this.letzterAbstand = abstand;
+        this.letzterWinkel = winkel;
         this.geschoben = true;
         return;
       }
 
-      const weg = Math.hypot(ereignis.clientX - this.startPunkt.x, ereignis.clientY - this.startPunkt.y);
+      const weg = Math.hypot(
+        ereignis.clientX - this.startPunkt.x,
+        ereignis.clientY - this.startPunkt.y,
+      );
       if (weg > SCHIEBE_SCHWELLE) this.geschoben = true;
-      if (this.geschoben) this.kamera.verschiebe(dx, dy);
+      if (!this.geschoben) return;
+      // Mit gedrueckter Umschalttaste oder rechter Maustaste wird gedreht
+      // statt geschoben - am Schreibtisch gibt es keinen zweiten Finger.
+      if (ereignis.shiftKey || ereignis.buttons === 2) this.welt.drehe(-dx * 0.006, dy * 0.004);
+      else this.welt.verschiebe(dx, dy);
     });
 
     const beenden = (ereignis: PointerEvent): void => {
@@ -334,11 +333,16 @@ export class Partie {
       this.zeiger.delete(ereignis.pointerId);
       this.letzterAbstand = 0;
     });
+    flaeche.addEventListener('contextmenu', (ereignis) => ereignis.preventDefault());
 
-    flaeche.addEventListener('wheel', (ereignis) => {
-      ereignis.preventDefault();
-      this.kamera.zoome(ereignis.deltaY < 0 ? 1.12 : 1 / 1.12, ereignis.clientX, ereignis.clientY);
-    });
+    flaeche.addEventListener(
+      'wheel',
+      (ereignis) => {
+        ereignis.preventDefault();
+        this.welt.zoome(ereignis.deltaY < 0 ? 1.12 : 1 / 1.12);
+      },
+      { passive: false },
+    );
   }
 
   private zeigerAbstand(): number {
@@ -349,18 +353,17 @@ export class Partie {
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
 
-  private zeigerMitte(): { x: number; y: number } {
+  private zeigerWinkel(): number {
     const punkte = [...this.zeiger.values()];
     const a = punkte[0];
     const b = punkte[1];
-    if (a === undefined || b === undefined) return { x: 0, y: 0 };
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    if (a === undefined || b === undefined) return 0;
+    return Math.atan2(b.y - a.y, b.x - a.x);
   }
 
   /** Ein Tippen waehlt den naechsten Turm oder Bauplatz, sonst nichts. */
   private tippe(sx: number, sy: number): void {
-    this.kamera.zurWelt(sx, sy, this.hilfsPunkt);
-    zuKachel(this.hilfsPunkt.x, this.hilfsPunkt.y, this.hilfsPunkt);
+    this.welt.zurKachel(sx, sy, this.hilfsPunkt);
     const tx = this.hilfsPunkt.x;
     const ty = this.hilfsPunkt.y;
 
@@ -412,7 +415,7 @@ export class Partie {
   /** Setzt Ring und Schweber auf die richtige Bildschirmposition. */
   private zeigeAuswahl(): void {
     if (this.auswahl === null) {
-      this.szene.zeigeMarkierung(this.world, null, 0);
+      this.welt.zeigeMarkierung(this.world, null, 0);
       return;
     }
 
@@ -434,9 +437,8 @@ export class Partie {
             (this.world.mutator?.turmReichweite ?? 1);
         }
       }
-      zuBildschirm(slot.x, slot.y, this.hilfsPunkt);
-      weltX = this.hilfsPunkt.x;
-      weltY = this.hilfsPunkt.y;
+      weltX = slot.x;
+      weltY = slot.y;
     } else {
       const tower = this.world.towers.items.find((t) => t.active && t.id === this.auswahl?.index);
       if (tower === undefined) {
@@ -445,13 +447,12 @@ export class Partie {
         return;
       }
       reichweite = tower.range;
-      zuBildschirm(tower.x, tower.y, this.hilfsPunkt);
-      weltX = this.hilfsPunkt.x;
-      weltY = this.hilfsPunkt.y;
+      weltX = tower.x;
+      weltY = tower.y;
     }
 
-    this.szene.zeigeMarkierung(this.world, this.auswahl, reichweite);
-    this.kamera.zumBildschirm(weltX, weltY, this.hilfsPunkt);
-    this.schweber.setzePosition(this.hilfsPunkt.x, this.hilfsPunkt.y);
+    this.welt.zeigeMarkierung(this.world, this.auswahl, reichweite);
+    const punkt = this.welt.aufBildschirm(weltX, weltY, 0.8);
+    this.schweber.setzePosition(punkt.x, punkt.y);
   }
 }

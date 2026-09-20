@@ -6,9 +6,7 @@
  * Schrittweite liegt in partie.ts.
  */
 
-import { Application } from 'pixi.js';
 import type { Content, Difficulty, LevelDef, World } from '@sim/index';
-import { atlas } from '@render/atlas';
 import { loadContent } from '@data/index';
 import { Partie } from './partie';
 import { berechneBoni, splitterFuerAbschluss } from '@meta/boni';
@@ -54,7 +52,11 @@ interface Auftrag {
 }
 
 export class Spiel {
-  private readonly app = new Application();
+  /**
+   * Das Spielfeld traegt die beiden Leinwaende einer Partie: die raeumliche
+   * Szene und die flache Anzeige darueber.
+   */
+  private readonly feld = el('div', { id: 'feld' });
   private readonly ueberlagerung = el('div', { id: 'ueberlagerung' });
   private content: Content = loadContent();
   private stand: Spielstand = neuerStand();
@@ -64,19 +66,8 @@ export class Spiel {
   private letzteZeit = 0;
 
   async starte(wurzel: HTMLElement, uiWurzel: HTMLElement): Promise<void> {
-    await this.app.init({
-      background: '#0b0e14',
-      resizeTo: window,
-      antialias: false,
-      resolution: Math.min(2, window.devicePixelRatio || 1),
-      autoDensity: true,
-      preference: 'webgl',
-    });
-    wurzel.appendChild(this.app.canvas);
+    wurzel.appendChild(this.feld);
     uiWurzel.appendChild(this.ueberlagerung);
-
-    await atlas.ladeIndex();
-    await atlas.lade(['welt']);
     this.stand = await lade();
     klang.setzeEinstellungen(this.stand.einstellungen.ton, this.stand.einstellungen.musik);
 
@@ -89,7 +80,7 @@ export class Spiel {
     window.addEventListener('pointerdown', wecken);
 
     window.addEventListener('resize', () => {
-      this.partie?.passeGroesseAn(this.app.screen.width, this.app.screen.height);
+      this.partie?.passeGroesseAn(this.feld.clientWidth, this.feld.clientHeight);
     });
 
     // Kleiner Zugang fuer die Vorschauwerkzeuge in tools/preview. Er liest
@@ -110,13 +101,18 @@ export class Spiel {
 
     this.zeigeHauptmenue();
 
+    // Eigene Schleife statt eines fremden Taktgebers: sie laeuft mit der
+    // Bildwiederholung des Geraets und macht nichts, wenn keine Partie
+    // laeuft.
     this.letzteZeit = performance.now();
-    this.app.ticker.add(() => {
+    const bild = (): void => {
+      requestAnimationFrame(bild);
       const jetzt = performance.now();
       const dt = Math.min(100, jetzt - this.letzteZeit);
       this.letzteZeit = jetzt;
       if (this.ansicht === 'partie') this.partie?.aktualisiere(dt);
-    });
+    };
+    bild();
   }
 
   // --- Ansichten -----------------------------------------------------------
@@ -206,7 +202,7 @@ export class Spiel {
 
     this.beendePartie();
     const partie = new Partie({
-      app: this.app,
+      wurzel: this.feld,
       content: this.content,
       level,
       loadout: auftrag.loadout,

@@ -13,7 +13,6 @@
     "test:watch": "vitest",
     "sim": "tsx tools/sim-runner/run.ts",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "assets": "node tools/voxel-render/build.mjs",
     "balance": "tsx tools/sim-runner/alle.ts",
     "verlauf": "tsx tools/sim-runner/verlauf.ts",
     "app:sync": "npm run build && npx cap sync",
@@ -30,7 +29,6 @@
     "@capacitor/core": "^8.5.2",
     "@capacitor/preferences": "^8.0.1",
     "@types/three": "^0.186.0",
-    "pixi.js": "^8.6.6",
     "three": "^0.186.0"
   },
   "devDependencies": {

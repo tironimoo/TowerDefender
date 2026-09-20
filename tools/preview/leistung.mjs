@@ -10,10 +10,14 @@
 
 import { chromium } from 'playwright';
 
+// Ohne Grafikkarte im Pruefrechner muss WebGL in Software laufen. Seit die
+// Darstellung raeumlich ist, faellt das sonst nicht auf einen langsamen
+// Durchlauf zurueck, sondern auf ein schwarzes Bild.
+const GL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
 const EXECUTABLE = process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const levelNummer = Number.parseInt(process.argv[2] ?? '10', 10);
 
-const browser = await chromium.launch({ executablePath: EXECUTABLE });
+const browser = await chromium.launch({ executablePath: EXECUTABLE, args: GL_ARGS });
 const dpr = Number.parseFloat(process.argv[3] ?? '1');
 const page = await browser.newPage({
   viewport: { width: 844, height: 390 },

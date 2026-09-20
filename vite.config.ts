@@ -10,7 +10,6 @@ export default defineConfig({
       '@sim': resolvePath('./src/sim'),
       '@data': resolvePath('./src/data'),
       '@shared': resolvePath('./src/shared'),
-      '@render': resolvePath('./src/render'),
       '@render3d': resolvePath('./src/render3d'),
       '@app': resolvePath('./src/app'),
       '@meta': resolvePath('./src/meta'),
