@@ -249,9 +249,79 @@ export class Welt3D {
     this.setzeKamera();
   }
 
-  setzeStufe(name: StufenName): void {
+  setzeStufe(name: StufenName, vonHand = false): void {
     const stufe = STUFEN.find((s) => s.name === name);
-    if (stufe !== undefined) this.buehne.setzeStufe(stufe as Stufe);
+    if (stufe === undefined) return;
+    this.buehne.setzeStufe(stufe as Stufe);
+    if (vonHand) this.regeltSelbst = false;
+  }
+
+  get stufenName(): StufenName {
+    return this.buehne.stufe.name;
+  }
+
+  /** Zeichenbefehle des letzten Bildes. Fuer die Pruefwerkzeuge. */
+  letzteBefehle = 0;
+
+  get dreiecke(): number {
+    return this.buehne.renderer.info.render.triangles;
+  }
+
+  /**
+   * Passt die Qualitaetsstufe an das Geraet an.
+   *
+   * Die Stufe von Hand waehlen zu lassen ist eine Zumutung: niemand weiss
+   * vorher, was sein Telefon schafft, und wer es falsch waehlt, spielt ein
+   * ruckelndes Spiel und haelt das fuer normal. Also wird gemessen.
+   *
+   * Heruntergestuft wird schnell und hochgestuft langsam. Der Grund ist
+   * nicht Vorsicht, sondern dass ein staendiges Hin und Her schlimmer
+   * aussieht als die niedrigere Stufe: jeder Wechsel baut Schatten und
+   * Durchgaenge neu auf und kostet selbst ein Bild.
+   */
+  private regeltSelbst = true;
+  private messBeginn = 0;
+  private messbilder = 0;
+  private hochseitAn = 0;
+
+  /**
+   * Gemessen wird die echte Zeit, nicht die Zeit, die das Spiel gerechnet
+   * hat. Das Spiel deckelt seinen Zeitschritt bei hundert Millisekunden,
+   * damit es bei einem Ruckler nicht endlos nachholt. Wer damit misst,
+   * braucht auf einem wirklich langsamen Geraet eine halbe Minute, bis das
+   * erste Messfenster voll ist - also genau dort am laengsten, wo es am
+   * dringendsten waere.
+   */
+  beobachteLeistung(): void {
+    if (!this.regeltSelbst) return;
+    const jetzt = performance.now();
+    if (this.messBeginn === 0) {
+      this.messBeginn = jetzt;
+      return;
+    }
+    this.messbilder += 1;
+    const vergangen = jetzt - this.messBeginn;
+    if (vergangen < 1500 && this.messbilder < 90) return;
+    const mittel = vergangen / Math.max(1, this.messbilder);
+    this.messBeginn = jetzt;
+    this.messbilder = 0;
+
+    const rang = STUFEN.findIndex((s) => s.name === this.buehne.stufe.name);
+    if (mittel > 22 && rang < STUFEN.length - 1) {
+      this.hochseitAn = 0;
+      this.buehne.setzeStufe(STUFEN[rang + 1] as Stufe);
+      return;
+    }
+    if (mittel < 11 && rang > 0) {
+      this.hochseitAn += 1;
+      // Erst nach vier ruhigen Fenstern, also gut sechs Sekunden.
+      if (this.hochseitAn >= 4) {
+        this.hochseitAn = 0;
+        this.buehne.setzeStufe(STUFEN[rang - 1] as Stufe);
+      }
+      return;
+    }
+    this.hochseitAn = 0;
   }
 
   // --- Umrechnung -----------------------------------------------------------
@@ -357,6 +427,7 @@ export class Welt3D {
     this.aktualisiereFlecken(world);
     this.effekte.aktualisiere(dt);
     const befehle = this.buehne.rendere(zeit);
+    this.letzteBefehle = befehle;
     this.anzeige.zeichne(world, dt, (x, y, h) => this.aufBildschirm(x, y, h));
     return befehle;
   }

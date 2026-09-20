@@ -87,6 +87,10 @@ export class Spiel {
     // nur, veraendert nichts und stoert das Spiel nicht.
     (window as unknown as Record<string, unknown>)['__td'] = {
       bauplaetze: () => this.partie?.bauplatzPunkte() ?? [],
+      // Die Vorschauwerkzeuge laufen ohne Grafikkarte. Ohne diesen Griff
+      // wuerde die Selbstregelung dort sofort auf die niedrigste Stufe
+      // gehen, und die Bilder zeigten nicht, was ein echtes Geraet zeigt.
+      haltStufe: (name: 'Hoch' | 'Mittel' | 'Sparsam') => this.partie?.haltStufe(name),
       zustand: () => ({
         ansicht: this.ansicht,
         gold: this.partie?.world.gold ?? 0,
@@ -96,6 +100,8 @@ export class Spiel {
         gegner: this.partie?.world.enemies.activeCount ?? 0,
         boss: this.bossAufDerKarte(),
         status: this.partie?.world.status ?? 'kein',
+        stufe: this.partie?.stufe ?? 'kein',
+        last: this.partie?.zeichenlast ?? { befehle: 0, dreiecke: 0 },
       }),
     };
 

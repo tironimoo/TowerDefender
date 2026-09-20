@@ -165,6 +165,19 @@ export class Partie {
     this.welt.setzeGroesse(breite, hoehe);
   }
 
+  /** Fuer die Vorschauwerkzeuge: Stufe festhalten statt messen lassen. */
+  haltStufe(name: 'Hoch' | 'Mittel' | 'Sparsam'): void {
+    this.welt.setzeStufe(name, true);
+  }
+
+  get stufe(): string {
+    return this.welt.stufenName;
+  }
+
+  get zeichenlast(): { befehle: number; dreiecke: number } {
+    return { befehle: this.welt.letzteBefehle, dreiecke: this.welt.dreiecke };
+  }
+
   private befehl(befehl: Parameters<typeof applyCommand>[1]): void {
     applyCommand(this.world, befehl);
   }
@@ -201,6 +214,7 @@ export class Partie {
 
     this.haltMenueAktuell();
     this.welt.aktualisiereKamera(dtMs / 1000);
+    this.welt.beobachteLeistung();
     this.welt.zeichne(this.world, (dtMs / 1000) * this.tempo, jetzt / 1000);
     this.hud.aktualisiere(this.world, jetzt);
     this.ansage.aktualisiere(this.world, jetzt);
