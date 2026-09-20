@@ -26,9 +26,9 @@ import * as THREE from 'three';
 
 /** Gemeinsame Stellwerte aller Knetmaterialien. */
 export const knetWerte = {
-  korn: { value: 0.55 },
+  korn: { value: 0.5 },
   kornFeinheit: { value: 26.0 },
-  beulen: { value: 0.45 },
+  beulen: { value: 0.4 },
   rand: { value: 0.35 },
   kehle: { value: 1.0 },
   randFarbe: { value: new THREE.Color('#ffb98a') },
@@ -78,7 +78,7 @@ vec3 knetGefaelle(vec3 p, float weite) {
  * und alles andere aus three funktioniert weiter. Nur die Normale und ein
  * Randterm kommen dazu.
  */
-export function machKnete(material: THREE.MeshStandardMaterial): THREE.MeshStandardMaterial {
+export function machKnete<T extends THREE.MeshStandardMaterial>(material: T): T {
   material.onBeforeCompile = (schattierer) => {
     schattierer.uniforms['knetKorn'] = knetWerte.korn;
     schattierer.uniforms['knetFeinheit'] = knetWerte.kornFeinheit;
@@ -116,9 +116,12 @@ ${RAUSCHEN}`,
         '#include <normal_fragment_begin>',
         `#include <normal_fragment_begin>
 {
-  vec3 fein = knetGefaelle(vKnetOrt * knetFeinheit, 0.35);
-  vec3 grob = knetGefaelle(vKnetOrt * (knetFeinheit * 0.17), 0.35);
-  normal = normalize(normal - fein * knetKorn * 0.03 - grob * knetBeulen * 0.12);
+  // Die Staerken waren beim ersten Anlauf um den Faktor zwanzig zu klein
+  // gewaehlt - die Regler haben nichts sichtbar veraendert. Ein halber
+  // Einheitsvektor Ausschlag ist das, was man als Delle auch erkennt.
+  vec3 fein = knetGefaelle(vKnetOrt * knetFeinheit, 0.5);
+  vec3 grob = knetGefaelle(vKnetOrt * (knetFeinheit * 0.16), 0.5);
+  normal = normalize(normal - fein * knetKorn * 0.55 - grob * knetBeulen * 0.9);
 }`,
       )
       // Randleuchten als Eigenleuchten: so laeuft es durch dieselbe
@@ -135,8 +138,8 @@ ${RAUSCHEN}`,
         '#include <opaque_fragment>',
         `{
   vec3 zumAuge = normalize(vViewPosition);
-  float saum = pow(1.0 - clamp(dot(zumAuge, normal), 0.0, 1.0), 2.2);
-  totalEmissiveRadiance += knetRandFarbe * diffuseColor.rgb * saum * knetRand;
+  float saum = pow(1.0 - clamp(dot(zumAuge, normal), 0.0, 1.0), 1.8);
+  totalEmissiveRadiance += knetRandFarbe * mix(vec3(1.0), diffuseColor.rgb, 0.6) * saum * knetRand;
 }
 #include <opaque_fragment>`,
       );

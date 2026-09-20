@@ -20,12 +20,26 @@ import { baueHuelle } from './glatt';
 /** Eine Voxeleinheit in Weltmass. Sechzehn Voxel sind eine Kachel. */
 export const VOXEL = 1 / 16;
 
+/**
+ * Ein Grundkoerper.
+ *
+ * "kasten" ist das, was die Modelldaten aus dem Spiel mitbringen: ein
+ * achsenparalleler Quader. Die anderen beiden gibt es nur hier und sind der
+ * Kern des Stilumbaus - aus Ei und Wurst laesst sich eine Figur kneten, aus
+ * Wuerfeln nicht. Verarbeitet werden alle drei von derselben Stelle, weil
+ * der Huellenbau sie nur als Abstandsfunktion sieht.
+ */
+export type Grundform = 'kasten' | 'ei' | 'wurst';
+
 export interface RohKasten {
   readonly pos: readonly [number, number, number];
   readonly size: readonly [number, number, number];
   readonly color: string;
   readonly glow?: number;
   readonly grain?: number;
+  readonly art?: Grundform;
+  /** Nur fuer "wurst": die Achse, entlang der sie laeuft. */
+  readonly achse?: 'x' | 'y' | 'z';
 }
 
 export interface RohTeil {

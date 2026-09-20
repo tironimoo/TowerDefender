@@ -132,8 +132,20 @@ setzeSonne();
 // --- Knetmaterial ----------------------------------------------------------
 // Sehr rau und ohne Metallanteil. Knete glaenzt nur breit und stumpf; jeder
 // scharfe Glanzpunkt wuerde sie sofort zu Kunststoff machen.
+// MeshPhysicalMaterial statt Standard, wegen der duennen Lackschicht: genau
+// die macht aus einer matten Flaeche Plastilin. Knete ist nicht stumpf - sie
+// hat einen schwachen, breiten Wachsglanz, und ohne ihn sieht das Auge gar
+// keine Oberflaeche. Das ist auch der Grund, warum die Dellen bei Rauheit
+// 0.94 unsichtbar blieben: ohne Glanzlicht gibt es nichts, worin sich eine
+// Delle abzeichnen koennte.
 const materialFest = machKnete(
-  new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94, metalness: 0.0 }),
+  new THREE.MeshPhysicalMaterial({
+    vertexColors: true,
+    roughness: 0.62,
+    metalness: 0.0,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.55,
+  }),
 );
 const materialLeuchtend = new THREE.MeshBasicMaterial({ vertexColors: true });
 const materialien = { fest: materialFest, leuchtend: materialLeuchtend };
@@ -144,10 +156,12 @@ const materialien = { fest: materialFest, leuchtend: materialLeuchtend };
 // Spiel und nicht im Bild.
 const materialienGegner = {
   fest: machKnete(
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshPhysicalMaterial({
       vertexColors: true,
-      roughness: 0.88,
+      roughness: 0.6,
       metalness: 0.0,
+      clearcoat: 0.35,
+      clearcoatRoughness: 0.55,
       emissive: new THREE.Color(0x24313f),
       emissiveIntensity: 0.55,
     }),
@@ -423,7 +437,7 @@ const STIMMUNGEN: readonly Stimmung[] = [
       belichtung: 1.05, sonne: 3.0, gegenlicht: 1.5, himmelslicht: 2.9,
       fackeln: 1.5, kontakt: 0.62, kehlen: 1.0, dunst: 0.004, korn: 0.7, beulen: 0.5, randlicht: 0.3,
       bluehen: 0.12, unschaerfe: 13, koernung: 0.05, abschattung: 0.3,
-      saettigung: 0.94, toenung: 0.22,
+      saettigung: 0.94, toenung: 0.22, rauheit: 0.62, lack: 0.35,
     },
   },
   {
@@ -435,10 +449,10 @@ const STIMMUNGEN: readonly Stimmung[] = [
       setzeSonne();
     },
     werte: {
-      belichtung: 1.15, sonne: 5.0, gegenlicht: 1.9, himmelslicht: 2.2,
+      belichtung: 1.25, sonne: 5.4, gegenlicht: 2.1, himmelslicht: 3.0,
       fackeln: 5.0, kontakt: 0.5, kehlen: 0.95, dunst: 0.005, korn: 0.6, beulen: 0.45, randlicht: 0.5,
       bluehen: 0.3, unschaerfe: 15, koernung: 0.05, abschattung: 0.42,
-      saettigung: 1.02, toenung: 0.34,
+      saettigung: 1.02, toenung: 0.34, rauheit: 0.6, lack: 0.38,
     },
   },
   {
@@ -450,10 +464,10 @@ const STIMMUNGEN: readonly Stimmung[] = [
       setzeSonne();
     },
     werte: {
-      belichtung: 1.5, sonne: 1.9, gegenlicht: 2.2, himmelslicht: 3.2,
-      fackeln: 11.0, kontakt: 0.5, kehlen: 0.85, dunst: 0.007, korn: 0.5, beulen: 0.4, randlicht: 0.55,
-      bluehen: 0.7, unschaerfe: 12, koernung: 0.07, abschattung: 0.5,
-      saettigung: 1.02, toenung: 0.3,
+      belichtung: 1.75, sonne: 2.6, gegenlicht: 2.8, himmelslicht: 3.8,
+      fackeln: 13.0, kontakt: 0.5, kehlen: 0.8, dunst: 0.005, korn: 0.5, beulen: 0.4, randlicht: 0.6,
+      bluehen: 0.7, unschaerfe: 12, koernung: 0.06, abschattung: 0.38,
+      saettigung: 1.02, toenung: 0.3, rauheit: 0.58, lack: 0.4,
     },
   },
   {
@@ -468,7 +482,7 @@ const STIMMUNGEN: readonly Stimmung[] = [
       belichtung: 1.0, sonne: 2.8, gegenlicht: 2.0, himmelslicht: 2.6,
       fackeln: 0.0, kontakt: 0.7, kehlen: 1.25, dunst: 0.002, korn: 0.8, beulen: 0.6, randlicht: 0.22,
       bluehen: 0.1, unschaerfe: 18, koernung: 0.035, abschattung: 0.38,
-      saettigung: 0.9, toenung: 0.08,
+      saettigung: 0.9, toenung: 0.08, rauheit: 0.42, lack: 0.6,
     },
   },
 ];
@@ -485,7 +499,8 @@ const bedienfeld = baueBedienfeld(
         { id: 'beulen', name: 'Beulen', von: 0, bis: 1.5, schritt: 0.05, wert: knetWerte.beulen.value, zeige: prozent, setze: (w) => { knetWerte.beulen.value = w; } },
         { id: 'feinheit', name: 'Koernung', von: 6, bis: 60, schritt: 1, wert: knetWerte.kornFeinheit.value, zeige: (w) => w.toFixed(0), setze: (w) => { knetWerte.kornFeinheit.value = w; } },
         { id: 'randlicht', name: 'Durchscheinen', von: 0, bis: 1.2, schritt: 0.05, wert: knetWerte.rand.value, zeige: prozent, setze: (w) => { knetWerte.rand.value = w; } },
-        { id: 'rauheit', name: 'Mattheit', von: 0.2, bis: 1, schritt: 0.02, wert: materialFest.roughness, zeige: prozent, setze: (w) => { materialFest.roughness = w; materialienGegner.fest.roughness = w; } },
+        { id: 'rauheit', name: 'Mattheit', von: 0.15, bis: 1, schritt: 0.02, wert: materialFest.roughness, zeige: prozent, setze: (w) => { materialFest.roughness = w; materialienGegner.fest.roughness = w; } },
+        { id: 'lack', name: 'Wachsglanz', von: 0, bis: 1, schritt: 0.02, wert: materialFest.clearcoat, zeige: prozent, setze: (w) => { materialFest.clearcoat = w; materialienGegner.fest.clearcoat = w; } },
       ],
     },
     {
@@ -501,6 +516,13 @@ const bedienfeld = baueBedienfeld(
         { id: 'kehlen', name: 'Kehlschatten', von: 0, bis: 1.6, schritt: 0.05, wert: knetWerte.kehle.value, zeige: prozent, setze: (w) => { knetWerte.kehle.value = w; } },
         { id: 'kontakt', name: 'Bodenschatten', von: 0, bis: 1, schritt: 0.02, wert: bodenschatten.material.opacity, zeige: prozent, setze: (w) => { bodenschatten.material.opacity = w; } },
         { id: 'dunst', name: 'Dunst', von: 0, bis: 0.02, schritt: 0.0005, wert: 0.004, zeige: (w) => `${(w * 1000).toFixed(1)}`, setze: (w) => { (szene.fog as THREE.FogExp2).density = w; } },
+      ],
+    },
+    {
+      name: 'Aufnahme',
+      regler: [
+        { id: 'takt', name: 'Stop-Motion', von: 0, bis: 30, schritt: 1, wert: 12, zeige: (w) => (w <= 0 ? 'aus' : `${w.toFixed(0)}/s`), setze: (w) => { taktBilder = w; } },
+        { id: 'zappeln', name: 'Zappeln', von: 0, bis: 0.06, schritt: 0.002, wert: 0.012, zeige: (w) => `${(w * 100).toFixed(1)}`, setze: (w) => { zappeln = w; } },
       ],
     },
     {
@@ -579,6 +601,12 @@ document.getElementById('form')?.addEventListener('click', () => {
   naechste.set('form', bauform === 'glatt' ? 'klotz' : 'glatt');
   location.search = naechste.toString();
 });
+// Bilder je Sekunde, in denen die Szene nachgefuehrt wird. Null heisst: in
+// jedem Bild, also fluessig wie bisher.
+let taktBilder = 12;
+let letzterTakt = -1;
+let zappeln = 0.012;
+
 let drehenAn = true;
 document.getElementById('drehen')?.addEventListener('click', () => {
   drehenAn = !drehenAn;
@@ -591,6 +619,16 @@ let bilder = 0;
 let fensterStart = performance.now();
 let fps = 0;
 const SCHRITT = 1000 / TICKS_PER_SECOND;
+
+let zeichenbefehle = 0;
+function zeichneBild(): void {
+  feld(abzug, 'zeit').value = performance.now() / 1000;
+  // Vor der Nachbearbeitung ablesen: nach komponist.render() steht im Zaehler
+  // nur noch der letzte Durchgang, und das ist ein Vollbild-Viereck.
+  renderer.info.reset();
+  komponist.render();
+  zeichenbefehle = renderer.info.render.calls;
+}
 
 function bild(): void {
   requestAnimationFrame(bild);
@@ -613,10 +651,27 @@ function bild(): void {
     applyCommand(world, { type: 'welle-starten' });
   }
 
-  const zeit = jetzt / 1000;
-  if (drehenAn) {
-    drehung += dt * 0.00004;
+  // --- Stop-Motion-Takt ----------------------------------------------------
+  // Der staerkste Hinweis darauf, dass etwas gerechnet ist, ist seine
+  // Gleichmaessigkeit: sechzig makellos interpolierte Bilder je Sekunde gibt
+  // es in der Wirklichkeit nirgends. Ein Knetfilm laeuft auf zwoelf Bildern,
+  // jedes einzeln von Hand gestellt, und genau dieses Stocken erkennt das
+  // Auge sofort wieder.
+  //
+  // Deshalb wird die Szene hier nur im Takt nachgefuehrt. Gerendert wird
+  // weiter mit voller Bildrate - das Bild steht dann eben, wie im Film.
+  const taktJetzt = taktBilder > 0 ? Math.floor((jetzt / 1000) * taktBilder) : -1;
+  const neuerTakt = taktBilder <= 0 || taktJetzt !== letzterTakt;
+  letzterTakt = taktJetzt;
+  const zeit = taktBilder > 0 ? taktJetzt / taktBilder : jetzt / 1000;
+
+  if (drehenAn && neuerTakt) {
+    drehung += (taktBilder > 0 ? 1000 / taktBilder : dt) * 0.00004;
     setzeKamera();
+  }
+  if (!neuerTakt) {
+    zeichneBild();
+    return;
   }
 
   // Gegner
@@ -628,8 +683,19 @@ function bild(): void {
     bodenschatten.setze(flecken++, enemy.x, HOEHE.weg + 0.012, enemy.y, 0.75);
     const bild = gegnerBild(enemy);
     if (bild === null) continue;
-    bild.gruppe.position.set(enemy.x, HOEHE.weg, enemy.y);
-    bild.gruppe.rotation.y = -((enemy.heading * Math.PI) / 180);
+    // Ein Hauch Unruhe je Takt: eine von Hand gestellte Figur steht nie
+    // zweimal exakt gleich. Ohne das wirkt auch der Takt noch gerechnet.
+    bild.gruppe.position.set(
+      enemy.x + (Math.random() - 0.5) * zappeln,
+      HOEHE.weg + (Math.random() - 0.5) * zappeln * 0.4,
+      enemy.y + (Math.random() - 0.5) * zappeln,
+    );
+    // Plus eine halbe Drehung: die Modelle schauen bei null Grad nach +z,
+    // die Simulation meint mit null Grad aber "nach -z". Ohne das laufen
+    // alle Gegner rueckwaerts. Der Sprite-Renderer gleicht denselben
+    // Versatz in richtungZuIndex() aus, nur an anderer Stelle.
+    bild.gruppe.rotation.y =
+      Math.PI - (enemy.heading * Math.PI) / 180 + (Math.random() - 0.5) * zappeln * 2;
     // baseSpeed, nicht speed: das Feld heisst anders, und "undefined" hier
     // hat als NaN die ganze Drehmatrix vergiftet.
     bewege(bild.teile, zeit, 6 * Math.max(0.2, enemy.baseSpeed));
@@ -647,7 +713,7 @@ function bild(): void {
     const bild = turmBilder.get(turm.id);
     if (bild === undefined) continue;
     const kopf = bild.teile[bild.teile.length - 1];
-    if (kopf !== undefined) kopf.rotation.y = -((turm.heading * Math.PI) / 180);
+    if (kopf !== undefined) kopf.rotation.y = Math.PI - (turm.heading * Math.PI) / 180;
   }
 
   // Geschosse
@@ -675,12 +741,7 @@ function bild(): void {
   himmel.netz.position.copy(kamera.position);
   staub.rotation.y = zeit * 0.01;
   feld(abzug, 'zeit').value = zeit;
-  // Vor der Nachbearbeitung ablesen: nach komponist.render() steht im Zaehler
-  // nur noch der letzte Durchgang, und das ist ein Vollbild-Viereck.
-  renderer.info.reset();
-  komponist.render();
-  const zeichenbefehle = renderer.info.render.calls;
-
+  zeichneBild();
   bilder++;
   if (jetzt - fensterStart >= 500) {
     fps = Math.round((bilder * 1000) / (jetzt - fensterStart));

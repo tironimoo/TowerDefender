@@ -30,6 +30,10 @@ export default defineConfig({
         // trennt die Buendel selbst, das Spiel traegt Three.js also nicht mit.
         spiel: resolvePath('./index.html'),
         prototyp: resolvePath('./prototyp/index.html'),
+        // Die Werkstatt zeigt einzelne Modelle nebeneinander, ohne Karte und
+        // ohne Nachbearbeitung - der einzige Aufbau, in dem sich ein Urteil
+        // ueber die Form von einem Urteil ueber das Bild trennen laesst.
+        werkstatt: resolvePath('./prototyp/werkstatt.html'),
       },
     },
   },

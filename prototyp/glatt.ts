@@ -39,16 +39,56 @@ export function setzeVerschmelzung(wert: number): void {
   verschmelzung = wert;
 }
 
-/** Abstand eines Punktes zur Oberflaeche eines Kastens, negativ im Innern. */
-function kastenAbstand(
-  px: number,
-  py: number,
-  pz: number,
-  kasten: RohKasten,
-): number {
-  const qx = Math.abs(px - kasten.pos[0]) - kasten.size[0] / 2;
-  const qy = Math.abs(py - kasten.pos[1]) - kasten.size[1] / 2;
-  const qz = Math.abs(pz - kasten.pos[2]) - kasten.size[2] / 2;
+/**
+ * Abstand eines Punktes zur Oberflaeche eines Grundkoerpers, negativ im
+ * Innern.
+ *
+ * Drei Formen, eine Rueckgabe - genau deshalb laesst sich das Vokabular
+ * erweitern, ohne am Huellenbau eine Zeile zu aendern.
+ */
+function kastenAbstand(px: number, py: number, pz: number, kasten: RohKasten): number {
+  const dx = px - kasten.pos[0];
+  const dy = py - kasten.pos[1];
+  const dz = pz - kasten.pos[2];
+  const [sx, sy, sz] = kasten.size;
+
+  if (kasten.art === 'ei') {
+    // Ellipsoid, genaehert: der Abstand im gestauchten Raum, wieder auf das
+    // Mass der kuerzesten Halbachse gebracht. Exakt geht nicht in
+    // geschlossener Form, und fuer eine Huelle reicht das vollauf.
+    const ex = dx / (sx / 2);
+    const ey = dy / (sy / 2);
+    const ez = dz / (sz / 2);
+    const r = Math.sqrt(ex * ex + ey * ey + ez * ez);
+    return (r - 1) * (Math.min(sx, sy, sz) / 2);
+  }
+
+  if (kasten.art === 'wurst') {
+    // Kapsel: eine Strecke mit Radius. Die Laenge steckt in der gewaehlten
+    // Achse, der Radius in der kleineren der beiden uebrigen.
+    const achse = kasten.achse ?? 'y';
+    const laenge = (achse === 'x' ? sx : achse === 'y' ? sy : sz) / 2;
+    const radius =
+      achse === 'x'
+        ? Math.min(sy, sz) / 2
+        : achse === 'y'
+          ? Math.min(sx, sz) / 2
+          : Math.min(sx, sy) / 2;
+    const entlang = achse === 'x' ? dx : achse === 'y' ? dy : dz;
+    const kern = Math.max(0, laenge - radius);
+    const rest = entlang - Math.max(-kern, Math.min(kern, entlang));
+    const quer =
+      achse === 'x'
+        ? Math.hypot(dy, dz)
+        : achse === 'y'
+          ? Math.hypot(dx, dz)
+          : Math.hypot(dx, dy);
+    return Math.hypot(rest, quer) - radius;
+  }
+
+  const qx = Math.abs(dx) - sx / 2;
+  const qy = Math.abs(dy) - sy / 2;
+  const qz = Math.abs(dz) - sz / 2;
   const ax = Math.max(qx, 0);
   const ay = Math.max(qy, 0);
   const az = Math.max(qz, 0);
