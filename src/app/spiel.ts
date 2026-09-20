@@ -209,6 +209,7 @@ export class Spiel {
     this.beendePartie();
     const partie = new Partie({
       wurzel: this.feld,
+      grafik: this.stand.einstellungen.grafik,
       content: this.content,
       level,
       loadout: auftrag.loadout,
@@ -403,6 +404,12 @@ export class Spiel {
           this.stand.einstellungen[feld] = !this.stand.einstellungen[feld];
           klang.setzeEinstellungen(this.stand.einstellungen.ton, this.stand.einstellungen.musik);
           void sichere(this.stand);
+          this.zeigeEinstellungen();
+        },
+        beiGrafik: (wert) => {
+          this.stand.einstellungen.grafik = wert;
+          void sichere(this.stand);
+          this.partie?.setzeGrafik(wert);
           this.zeigeEinstellungen();
         },
         beiLoeschen: () => {

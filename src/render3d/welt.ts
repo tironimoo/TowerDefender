@@ -256,6 +256,15 @@ export class Welt3D {
     if (vonHand) this.regeltSelbst = false;
   }
 
+  /** Schaltet das Messen wieder ein, nachdem die Stufe festgehalten war. */
+  regleSelbst(): void {
+    this.regeltSelbst = true;
+    this.messBeginn = 0;
+    this.messbilder = 0;
+    this.hochseitAn = 0;
+    this.buehne.setzeStufe(STUFEN[0] as Stufe);
+  }
+
   get stufenName(): StufenName {
     return this.buehne.stufe.name;
   }

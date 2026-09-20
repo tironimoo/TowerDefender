@@ -35,6 +35,7 @@ export interface PartieOptionen {
   /** Ob das Geraet vibrieren darf. */
   readonly vibration: boolean;
   readonly tempo: number;
+  readonly grafik: 'auto' | 'Hoch' | 'Mittel' | 'Sparsam';
   readonly beiEnde: (world: World) => void;
   readonly beiMenue: () => void;
   readonly beiTempo: (tempo: number) => void;
@@ -78,6 +79,7 @@ export class Partie {
     optionen.wurzel.append(this.welt.leinwand, this.welt.anzeige.leinwand);
     this.welt.setzeGroesse(optionen.wurzel.clientWidth, optionen.wurzel.clientHeight);
     this.welt.setzeRequisitenFlecken();
+    this.setzeGrafik(optionen.grafik);
     this.welt.passeAn();
 
     this.hud = new Hud({
@@ -168,6 +170,11 @@ export class Partie {
   /** Fuer die Vorschauwerkzeuge: Stufe festhalten statt messen lassen. */
   haltStufe(name: 'Hoch' | 'Mittel' | 'Sparsam'): void {
     this.welt.setzeStufe(name, true);
+  }
+
+  setzeGrafik(wert: 'auto' | 'Hoch' | 'Mittel' | 'Sparsam'): void {
+    if (wert === 'auto') this.welt.regleSelbst();
+    else this.welt.setzeStufe(wert, true);
   }
 
   get stufe(): string {

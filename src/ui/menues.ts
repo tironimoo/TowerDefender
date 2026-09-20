@@ -491,6 +491,7 @@ export function meisterschaftUebersicht(
 
 export interface EinstellungRueckrufe {
   readonly beiUmschalten: (feld: 'ton' | 'musik' | 'vibration') => void;
+  readonly beiGrafik: (wert: Spielstand['einstellungen']['grafik']) => void;
   readonly beiLoeschen: () => void;
   readonly beiZurueck: () => void;
 }
@@ -506,10 +507,31 @@ export function einstellungen(stand: Spielstand, rueckrufe: EinstellungRueckrufe
       ),
     ]);
 
+  // Die Reihenfolge ist die der Stufen, von selbst regelnd zuerst.
+  const GRAFIK = ['auto', 'Hoch', 'Mittel', 'Sparsam'] as const;
+  const grafikReihe = el('div', { class: 'reihe' }, [
+    el('span', {}, ['Bildqualitaet']),
+    el(
+      'span',
+      { class: 'gradreihe' },
+      GRAFIK.map((wert) =>
+        taste(
+          wert === 'auto' ? 'selbst' : wert,
+          () => rueckrufe.beiGrafik(wert),
+          `klein ${stand.einstellungen.grafik === wert ? 'aktiv' : ''}`.trim(),
+        ),
+      ),
+    ),
+  ]);
+
   return dialog('Einstellungen', [
     schalter('Geraeusche', 'ton'),
     schalter('Musik', 'musik'),
     schalter('Vibration', 'vibration'),
+    grafikReihe,
+    el('div', { class: 'zeile schwach' }, [
+      'Selbst regelnd misst waehrend des Spiels nach und stellt so hoch ein, wie das Geraet es fluessig schafft.',
+    ]),
     el('h2', {}, ['Spielstand']),
     el('div', { class: 'zeile schwach' }, [
       'Loeschen setzt Sterne, Forschung und Meisterschaft zurueck. Das laesst sich nicht rueckgaengig machen.',

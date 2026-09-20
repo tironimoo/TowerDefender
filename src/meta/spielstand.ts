@@ -27,6 +27,16 @@ export interface Einstellungen {
   vibration: boolean;
   /** Zuletzt benutzte Geschwindigkeit. */
   tempo: number;
+  /**
+   * Bildqualitaet. "auto" misst und regelt nach; alles andere haelt fest.
+   *
+   * Der Regelfall ist "auto", weil niemand vorher weiss, was sein Telefon
+   * schafft. Die feste Wahl gibt es fuer die beiden Faelle, in denen Messen
+   * daneben liegt: ein starkes Geraet, das bei einer kurzen Stoerung
+   * heruntergestuft hat, und ein schwaches, auf dem lieber alles ruckelfrei
+   * laufen soll.
+   */
+  grafik: 'auto' | 'Hoch' | 'Mittel' | 'Sparsam';
 }
 
 export interface Spielstand {
@@ -58,7 +68,7 @@ export function neuerStand(): Spielstand {
     loadouts: {},
     endlos: {},
     wochen: {},
-    einstellungen: { ton: true, musik: true, vibration: true, tempo: 1 },
+    einstellungen: { ton: true, musik: true, vibration: true, tempo: 1, grafik: 'auto' },
   };
 }
 
